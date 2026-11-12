@@ -17,7 +17,7 @@ enum OptimizerBackend: String, CaseIterable, Identifiable, Codable {
     var id: String { rawValue }
     var title: String {
         switch self {
-        case .auto: return "Automatic (Groq, else Apple)"
+        case .auto: return "Automatic (Apple on-device, else Groq)"
         case .off: return "Off (verbatim)"
         case .apple: return "Apple Intelligence (on-device)"
         case .groq: return "Groq LLM"

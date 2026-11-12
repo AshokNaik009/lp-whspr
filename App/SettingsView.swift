@@ -45,8 +45,14 @@ struct SettingsView: View {
                     Picker("Rewrite with", selection: $settings.optimizerBackend) {
                         ForEach(OptimizerBackend.allCases) { Text($0.title).tag($0) }
                     }
-                    if settings.optimizerBackend == .apple && !TextOptimizer.isAppleModelAvailable {
-                        Text("Apple Intelligence isn't available on this device.").font(.footnote).foregroundStyle(.orange)
+                    if settings.optimizerBackend != .off && settings.optimizerBackend != .groq {
+                        if let reason = TextOptimizer.appleUnavailableReason {
+                            Label(reason, systemImage: "exclamationmark.triangle")
+                                .font(.footnote).foregroundStyle(.orange)
+                        } else {
+                            Label("Apple Intelligence is ready on this iPhone.", systemImage: "checkmark.seal")
+                                .font(.footnote).foregroundStyle(.green)
+                        }
                     }
                 }
 

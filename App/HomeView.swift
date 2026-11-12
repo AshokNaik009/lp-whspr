@@ -277,7 +277,7 @@ struct HomeView: View {
             return "Rewriting is off in Settings, so \(mode.name) inserts your words as spoken."
         }
         if !TextOptimizer.canRewrite(settings: settings) {
-            return "Add a Groq API key in Settings to use \(mode.name)."
+            return "\(TextOptimizer.appleUnavailableReason ?? "Apple Intelligence isn't available.") Or add a Groq key to use \(mode.name)."
         }
         if mode.id == "arabic" { return "Speak in any language; Arabic text is inserted." }
         return nil

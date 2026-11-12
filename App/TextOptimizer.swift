@@ -7,15 +7,18 @@ enum TextOptimizerError: LocalizedError {
     case appleModelUnavailable
     case rewritingOff
     case noEngine
+    case appleLanguageUnsupported
 
     var errorDescription: String? {
         switch self {
         case .appleModelUnavailable:
-            return "Apple Intelligence isn't available on this device. Choose Groq or Automatic in Settings."
+            return "\(TextOptimizer.appleUnavailableReason ?? "Apple Intelligence isn't available.") Or choose Groq in Settings."
         case .rewritingOff:
             return "rewriting is off in Settings, so your words were inserted as spoken."
         case .noEngine:
-            return "add a Groq API key in Settings to rewrite or translate."
+            return "\(TextOptimizer.appleUnavailableReason ?? "Apple Intelligence isn't available.") Or add a Groq API key in Settings."
+        case .appleLanguageUnsupported:
+            return "Apple's on-device model doesn't support Arabic yet. Add a Groq API key in Settings to translate."
         }
     }
 }
@@ -36,13 +39,16 @@ enum TextOptimizer {
             guard let key = settings.groqAPIKey else { throw GroqError.missingAPIKey }
             return try await optimizeWithGroq(text, system: system, key: key, model: settings.groqChatModel)
         case .apple:
-            return try await optimizeWithApple(text, system: system)
+            return try await optimizeWithApple(text, system: system, mode: mode)
         case .auto:
+            if isAppleModelAvailable, appleSupports(mode) {
+                return try await optimizeWithApple(text, system: system, mode: mode)
+            }
             if let key = settings.groqAPIKey {
                 return try await optimizeWithGroq(text, system: system, key: key, model: settings.groqChatModel)
             }
-            guard isAppleModelAvailable else { throw TextOptimizerError.noEngine }
-            return try await optimizeWithApple(text, system: system)
+            if isAppleModelAvailable { throw TextOptimizerError.appleLanguageUnsupported }
+            throw TextOptimizerError.noEngine
         }
     }
 
@@ -70,7 +76,40 @@ enum TextOptimizer {
         return false
     }
 
-    private static func optimizeWithApple(_ text: String, system: String) async throws -> String {
+    /// Why Apple's on-device model can't be used right now, or nil when it is ready.
+    static var appleUnavailableReason: String? {
+        #if canImport(FoundationModels)
+        if #available(iOS 26.0, *) {
+            switch SystemLanguageModel.default.availability {
+            case .available:
+                return nil
+            case .unavailable(.appleIntelligenceNotEnabled):
+                return "Turn on Apple Intelligence in the iPhone's Settings > Apple Intelligence & Siri."
+            case .unavailable(.modelNotReady):
+                return "Apple Intelligence is still downloading its model. Keep the phone on Wi-Fi and charging, then try again."
+            case .unavailable(.deviceNotEligible):
+                return "This device doesn't support Apple Intelligence."
+            case .unavailable:
+                return "Apple Intelligence isn't available right now."
+            }
+        }
+        #endif
+        return "Apple Intelligence needs iOS 26 or later."
+    }
+
+    /// Apple's model only writes in the languages it supports; the Arabic mode needs Arabic output.
+    private static func appleSupports(_ mode: DictationMode) -> Bool {
+        guard mode.id == "arabic" else { return true }
+        #if canImport(FoundationModels)
+        if #available(iOS 26.0, *) {
+            return SystemLanguageModel.default.supportedLanguages.contains { $0.languageCode?.identifier == "ar" }
+        }
+        #endif
+        return false
+    }
+
+    private static func optimizeWithApple(_ text: String, system: String, mode: DictationMode) async throws -> String {
+        guard appleSupports(mode) else { throw TextOptimizerError.appleLanguageUnsupported }
         #if canImport(FoundationModels)
         if #available(iOS 26.0, *), isAppleModelAvailable {
             let session = LanguageModelSession(instructions: system)
