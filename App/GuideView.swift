@@ -136,7 +136,7 @@ struct GuideTopic: Identifiable {
                 "Tap the mic. The first time, Leap Whisper opens to start the microphone and jumps back by itself. If it doesn't, tap ◀ in the top-left corner.",
                 "Speak, then tap ■. The text is typed straight into the app.",
             ],
-            tip: "After the first tap the mic session stays on (30 minutes by default), so later taps record right inside the app. Change it in Settings > Session."
+            tip: "iOS doesn't let keyboards use the mic, so each tap briefly opens Leap Whisper to start it, then jumps back. The mic (and the orange dot) switches off as soon as your text is inserted."
         ),
         GuideTopic(
             id: "modes", icon: "dial.medium.fill", tint: .pink, title: "Modes and the dial",

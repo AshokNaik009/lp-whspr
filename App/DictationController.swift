@@ -131,6 +131,16 @@ final class DictationController: ObservableObject {
         update(state: .idle, message: reason)
     }
 
+    /// Switches the mic (and the orange indicator) off once a dictation is done, without touching the status text.
+    /// The next keyboard tap opens the app again to restart it.
+    private func closeMic() {
+        guard capture.isRunning, state != .recording, !isCalibrating else { return }
+        capture.stopEngine()
+        isSessionActive = false
+        level = 0
+        SharedStore.clearHeartbeat()
+    }
+
     private func checkIdleTimeout() {
         guard isSessionActive, state == .idle else { return }
         if Date().timeIntervalSince(lastActivity) > Double(settings.sessionTimeoutMinutes * 60) {
@@ -214,10 +224,14 @@ final class DictationController: ObservableObject {
         _ = capture.endRecording()
         level = 0
         update(state: .idle)
+        closeMic()
     }
 
     private func process(samples: [Float], mode: DictationMode) async {
-        defer { lastActivity = Date() }
+        defer {
+            lastActivity = Date()
+            closeMic()
+        }
         guard samples.count > Int(AudioCapture.sampleRate * 0.3) else {
             update(state: .idle, message: "Didn't catch that — hold on a bit longer.")
             return
@@ -326,6 +340,7 @@ final class DictationController: ObservableObject {
         level = 0
         let samples = capture.endRecording()
         update(state: .idle)
+        closeMic()
         return samples
     }
 

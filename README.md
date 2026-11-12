@@ -65,12 +65,13 @@ iOS does not let keyboard extensions use the microphone, so the app owns the mic
 
 1. The first mic tap in the keyboard opens Leap Whisper (`leapwhisper://session?start=1`). The app starts
    an `AVAudioEngine` session with the `audio` background mode and begins recording.
-2. The user swipes back (◀ breadcrumb). The engine keeps running in the background, so the app stays alive.
-3. From then on, the keyboard mic sends `start`/`stop` commands over Darwin notifications and the
-   App Group. The app transcribes, applies the selected mode and publishes the text. The keyboard inserts it via
-   `textDocumentProxy`.
-4. The session ends after the idle timeout (Settings, default 30 min, up to 4 h) or from the app. While the
-   session is alive, the keyboard never needs to open the app; a longer timeout means fewer trips to the app.
+2. The app jumps back to the host app (or the user taps the ◀ breadcrumb). The engine keeps running in the
+   background while recording and transcribing, so the app stays alive.
+3. The keyboard's stop tap sends a `stop` command over Darwin notifications and the App Group. The app
+   transcribes, applies the selected mode and publishes the text. The keyboard inserts it via `textDocumentProxy`.
+4. As soon as the text is published (or the recording is cancelled), the app stops the engine, so iOS's orange
+   mic indicator only shows while you're actually dictating. The next keyboard tap opens the app again;
+   iOS won't let a backgrounded app restart the microphone.
 
 The keyboard needs **Allow Full Access** to reach the shared App Group.
 

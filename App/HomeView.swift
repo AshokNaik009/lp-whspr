@@ -123,7 +123,7 @@ struct HomeView: View {
             Text("Tap ◀ in the top-left corner. Keep talking; your words appear where you were typing. Tap ■ in the Leap Whisper keyboard to finish.")
                 .font(.jakarta(.subheadline))
                 .foregroundStyle(Color.primary.opacity(0.9))
-            Text("From now on the keyboard mic records without opening this app.")
+            Text("The mic switches off as soon as your text is in, so the orange dot goes away.")
                 .font(.jakarta(.footnote))
                 .foregroundStyle(Color.primary.opacity(0.75))
         }
@@ -172,7 +172,7 @@ struct HomeView: View {
                     .animation(.easeOut(duration: 0.2), value: controller.liveText)
                     .transition(.opacity)
             }
-            if controller.isSessionActive && !isRecording {
+            if controller.isSessionActive && controller.state == .idle {
                 Button("End session") { controller.endSession() }
                     .font(.jakarta(.footnote, .semibold))
                     .padding(.horizontal, 14)
@@ -224,7 +224,7 @@ struct HomeView: View {
                 .font(.jakarta(.footnote))
                 .foregroundStyle(controller.state == .error ? (flat ? FlatPalette.danger : Color(red: 1, green: 0.85, blue: 0.85)) : Color.primary.opacity(0.8))
         } else {
-            Text(controller.isSessionActive ? "Tap the mic and start talking" : "Starts a session the keyboard can use")
+            Text(controller.isSessionActive ? "Tap the mic and start talking" : "The mic turns off after each dictation")
                 .font(.jakarta(.footnote))
                 .foregroundStyle(Color.primary.opacity(0.8))
         }

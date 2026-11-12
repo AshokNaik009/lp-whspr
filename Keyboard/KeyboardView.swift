@@ -201,7 +201,7 @@ struct KeyboardView: View {
         case .error: return model.statusMessage ?? "Something went wrong"
         case .idle:
             if let message = model.statusMessage, model.sessionAlive { return message }
-            return model.sessionAlive ? "Tap the orb and start talking" : "Tap to start a Leap Whisper session"
+            return model.sessionAlive ? "Tap the orb and start talking" : "Tap to dictate (Leap Whisper opens briefly)"
         }
     }
 

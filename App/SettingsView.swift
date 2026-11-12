@@ -107,14 +107,6 @@ struct SettingsView: View {
                 }
 
                 KeyboardBackgroundSection()
-
-                Section {
-                    Stepper("Keep mic session alive: \(settings.sessionTimeoutMinutes) min", value: $settings.sessionTimeoutMinutes, in: 5...240, step: 5)
-                } header: {
-                    Text("Session")
-                } footer: {
-                    Text("While a session is alive the keyboard mic records without opening the app (iOS shows the orange mic dot). Longer sessions mean fewer trips to the app but use more battery.")
-                }
             }
             .themedBackground()
             .navigationTitle("Settings")

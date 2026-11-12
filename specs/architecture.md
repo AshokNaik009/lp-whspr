@@ -31,8 +31,9 @@ sequenceDiagram
     G-->>K: insert via textDocumentProxy
 ```
 
-Later taps while the session is alive skip the app switch. The session ends after `sessionTimeoutMinutes` (10 by default) of
-inactivity, or when the user ends it.
+The app stops the engine as soon as each dictation is published or cancelled, so the orange mic indicator never shows while
+idle. Because iOS won't let a backgrounded app restart the microphone, every new dictation from the keyboard opens the app
+briefly; it starts recording and returns to the host app. `sessionTimeoutMinutes` remains only as a safety net.
 
 ## Pipeline
 

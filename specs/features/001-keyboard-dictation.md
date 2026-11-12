@@ -26,7 +26,7 @@ use the microphone, so the keyboard alone can't record.
 | FR-001-5 | When a transcript is published, the keyboard shall insert it through `textDocumentProxy`, adding a leading space when the preceding character isn't whitespace. |
 | FR-001-6 | The keyboard shall show chips for the user's modes and send the selected mode with `start`. |
 | FR-001-7 | The keyboard shall provide globe (next keyboard), space, delete and return keys, and a cancel button while recording. |
-| FR-001-8 | The app shall end the background session after `sessionTimeoutMinutes` of inactivity (default 10). |
+| FR-001-8 | The app shall stop the audio session as soon as a dictation is published or cancelled, so the mic indicator only shows while recording or transcribing. |
 | FR-001-9 | The keyboard shall not load ML models or audio frameworks. |
 
 ## Acceptance criteria
@@ -37,7 +37,7 @@ use the microphone, so the keyboard alone can't record.
 | AC-001-2 | **Given** a live session, **when** I tap the mic twice in Messages, **then** recording starts and stops without leaving Messages, and the transcript is inserted at the cursor. |
 | AC-001-3 | **Given** the text "Hello" before the cursor, **when** a transcript "world" arrives, **then** the field reads "Hello world". |
 | AC-001-4 | **Given** recording, **when** I tap cancel, **then** nothing is inserted and the state returns to idle. |
-| AC-001-5 | **Given** 10 idle minutes, **then** the app stops the audio session and the next keyboard tap reopens the app. |
+| AC-001-5 | **Given** a dictation was just inserted, **then** the orange mic indicator is gone and the next keyboard tap reopens the app. |
 
 ## Design notes
 
