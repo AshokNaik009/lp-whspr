@@ -40,6 +40,7 @@ enum SharedStore {
         static let pendingStart = "session.pendingStart"
         static let modes = "modes"
         static let selectedModeID = "modes.selected"
+        static let keyboardConnected = "keyboard.connected"
     }
 
     /// The app refreshes the heartbeat from its audio tap while a background session is running.
@@ -52,6 +53,13 @@ enum SharedStore {
 
     static func touchHeartbeat() {
         defaults.set(Date().timeIntervalSince1970, forKey: Key.heartbeat)
+    }
+
+    /// True once the keyboard has run with Full Access (writing to the App Group requires it).
+    static var keyboardHasConnected: Bool { defaults.bool(forKey: Key.keyboardConnected) }
+
+    static func markKeyboardConnected() {
+        if !keyboardHasConnected { defaults.set(true, forKey: Key.keyboardConnected) }
     }
 
     static func clearHeartbeat() {

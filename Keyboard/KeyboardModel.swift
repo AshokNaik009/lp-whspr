@@ -24,6 +24,7 @@ final class KeyboardModel: ObservableObject {
     var hasFullAccess: Bool { controller?.hasFullAccess ?? false }
 
     func activate() {
+        if hasFullAccess { SharedStore.markKeyboardConnected() }
         refresh()
         // Don't re-insert a transcript that was produced while the keyboard was hidden.
         if let latest = SharedStore.transcript, AppGroup.defaults.string(forKey: Self.lastInsertedKey) == nil {

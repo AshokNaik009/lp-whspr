@@ -16,8 +16,11 @@ struct HomeView: View {
     @State private var modes = SharedStore.modes
     @State private var levels = HomeView.silentLevels
     @State private var recordingStart: Date?
-    @State private var keyboardInstalled = HomeView.isKeyboardInstalled
+    @State private var keyboardInstalled = KeyboardStatus.isInstalled
+    @State private var keyboardFullAccess = KeyboardStatus.hasFullAccess
     @State private var copied = false
+    @State private var showsOnboarding = false
+    @AppStorage("onboarding.presented") private var onboardingPresented = false
 
     private static let silentLevels = [CGFloat](repeating: 0, count: 36)
 
@@ -41,10 +44,17 @@ struct HomeView: View {
             .onAppear {
                 modes = SharedStore.modes
                 selectedModeID = SharedStore.selectedModeID
-                keyboardInstalled = Self.isKeyboardInstalled
+                refreshKeyboardStatus()
+                if !onboardingPresented && !setupComplete {
+                    onboardingPresented = true
+                    showsOnboarding = true
+                }
             }
             .onChange(of: scenePhase) { _, phase in
-                if phase == .active { keyboardInstalled = Self.isKeyboardInstalled }
+                if phase == .active { refreshKeyboardStatus() }
+            }
+            .sheet(isPresented: $showsOnboarding, onDismiss: refreshKeyboardStatus) {
+                OnboardingView()
             }
             .onChange(of: controller.level) { _, value in
                 guard controller.state == .recording else { return }
@@ -322,7 +332,12 @@ struct HomeView: View {
 
     // MARK: Setup
 
-    private var setupComplete: Bool { hasEngine && keyboardInstalled }
+    private var setupComplete: Bool { hasEngine && keyboardInstalled && keyboardFullAccess }
+
+    private func refreshKeyboardStatus() {
+        keyboardInstalled = KeyboardStatus.isInstalled
+        keyboardFullAccess = KeyboardStatus.hasFullAccess
+    }
 
     private var setupChecklist: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -337,20 +352,24 @@ struct HomeView: View {
                 checklistRow(
                     done: keyboardInstalled,
                     title: "Add the Leap Whisper keyboard",
-                    detail: "General › Keyboard › Keyboards › Add New Keyboard, then Allow Full Access."
+                    detail: "Settings › Leap Whisper › Keyboards."
                 )
-                if !keyboardInstalled {
-                    Button {
-                        if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
-                    } label: {
-                        Label("Open Settings", systemImage: "arrow.up.forward.app")
-                            .font(.footnote.weight(.semibold))
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    .tint(Theme.accent)
-                    .padding(.leading, 44)
-                    .padding(.vertical, 10)
+                Divider().padding(.leading, 44)
+                checklistRow(
+                    done: keyboardFullAccess,
+                    title: "Allow Full Access",
+                    detail: "Then open the keyboard once with the 🌐 key."
+                )
+                Button {
+                    showsOnboarding = true
+                } label: {
+                    Label("Show me how", systemImage: "list.number")
+                        .font(.footnote.weight(.semibold))
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
+                .tint(Theme.accent)
+                .padding(.leading, 44)
+                .padding(.vertical, 10)
             }
             .padding(.horizontal, 14)
             .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
@@ -381,12 +400,5 @@ struct HomeView: View {
             .foregroundStyle(.secondary)
             .textCase(.uppercase)
             .padding(.horizontal, 4)
-    }
-
-    /// iOS lists enabled keyboards (by bundle identifier) in the global `AppleKeyboards` default.
-    private static var isKeyboardInstalled: Bool {
-        guard let appID = Bundle.main.bundleIdentifier,
-              let keyboards = UserDefaults.standard.array(forKey: "AppleKeyboards") as? [String] else { return false }
-        return keyboards.contains { $0.hasPrefix(appID + ".") }
     }
 }
