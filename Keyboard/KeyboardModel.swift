@@ -11,6 +11,7 @@ final class KeyboardModel: ObservableObject {
     @Published var showsGlobeKey = true
     @Published var hint: String?
     @Published var liveText: String?
+    @Published var recordingStartedAt: Date?
 
     private weak var controller: KeyboardViewController?
     private var tokens: [UUID] = []
@@ -50,6 +51,11 @@ final class KeyboardModel: ObservableObject {
     func refresh() {
         sessionAlive = SharedStore.isSessionAlive
         state = sessionAlive ? SharedStore.state : .idle
+        if state == .recording {
+            if recordingStartedAt == nil { recordingStartedAt = Date() }
+        } else {
+            recordingStartedAt = nil
+        }
         statusMessage = SharedStore.statusMessage
         liveText = state == .recording || state == .transcribing ? SharedStore.livePartial : nil
         modes = SharedStore.modes
