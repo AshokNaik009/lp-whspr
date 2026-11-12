@@ -274,7 +274,10 @@ struct HomeView: View {
         guard let mode = selectedMode else { return nil }
         if mode.isVerbatim { return "Inserts exactly what you said." }
         if settings.optimizerBackend == .off {
-            return "Turn on an optimizer in Settings to apply \(mode.name) rewriting."
+            return "Rewriting is off in Settings, so \(mode.name) inserts your words as spoken."
+        }
+        if !TextOptimizer.canRewrite(settings: settings) {
+            return "Add a Groq API key in Settings to use \(mode.name)."
         }
         if mode.id == "arabic" { return "Speak in any language; Arabic text is inserted." }
         return nil

@@ -6,6 +6,7 @@ struct ModelsView: View {
     @EnvironmentObject private var settings: AppSettings
     @State private var customURL = ""
     @State private var importing = false
+    @State private var pendingDelete: String?
 
     var body: some View {
         NavigationStack {
@@ -26,18 +27,29 @@ struct ModelsView: View {
                             .font(.footnote).foregroundStyle(.secondary)
                     }
                     ForEach(models.installed, id: \.self) { file in
-                        Button {
-                            settings.selectedModelFile = file
-                        } label: {
-                            HStack {
-                                Text(file).font(.subheadline)
-                                Spacer()
-                                if settings.selectedModelFile == file {
-                                    Image(systemName: "checkmark").foregroundStyle(.tint)
+                        HStack {
+                            Button {
+                                settings.selectedModelFile = file
+                            } label: {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(displayName(file)).font(.subheadline)
+                                        Text(sizeText(file)).font(.caption).foregroundStyle(.secondary)
+                                    }
+                                    Spacer()
+                                    if settings.selectedModelFile == file {
+                                        Image(systemName: "checkmark").foregroundStyle(.tint)
+                                    }
                                 }
+                                .contentShape(Rectangle())
                             }
+                            .buttonStyle(.plain)
+                            Button(role: .destructive) { pendingDelete = file } label: {
+                                Image(systemName: "trash").foregroundStyle(.red)
+                            }
+                            .buttonStyle(.borderless)
+                            .accessibilityLabel("Delete \(displayName(file))")
                         }
-                        .foregroundStyle(.primary)
                     }
                     .onDelete { offsets in
                         offsets.map { models.installed[$0] }.forEach(models.delete)
@@ -70,10 +82,31 @@ struct ModelsView: View {
                 }
             }
             .navigationTitle("Models")
+            .confirmationDialog(
+                "Delete \(pendingDelete.map(displayName) ?? "model")?",
+                isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } }),
+                titleVisibility: .visible
+            ) {
+                Button("Delete", role: .destructive) {
+                    if let file = pendingDelete { models.delete(file) }
+                    pendingDelete = nil
+                }
+            } message: {
+                Text("Frees \(pendingDelete.map(sizeText) ?? "space"). You can download it again any time.")
+            }
             .fileImporter(isPresented: $importing, allowedContentTypes: [.data]) { result in
                 if case .success(let url) = result { models.importModel(from: url) }
             }
         }
+    }
+
+    private func displayName(_ file: String) -> String {
+        WhisperModelInfo.catalog.first { $0.file == file }?.title ?? file
+    }
+
+    private func sizeText(_ file: String) -> String {
+        let bytes = (try? FileManager.default.attributesOfItem(atPath: models.url(for: file).path)[.size] as? Int64) ?? 0
+        return ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file)
     }
 
     @ViewBuilder

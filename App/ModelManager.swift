@@ -13,11 +13,20 @@ struct WhisperModelInfo: Identifiable, Hashable {
         .init(file: "ggml-tiny.en-q5_1.bin", title: "Tiny (English)", detail: "Fastest, lowest accuracy", bytes: 32_166_155),
         .init(file: "ggml-base.en-q5_1.bin", title: "Base (English)", detail: "Fast, good for short dictation", bytes: 59_721_011),
         .init(file: "ggml-base-q5_1.bin", title: "Base (Multilingual)", detail: "Fast, 99 languages", bytes: 59_707_625),
-        .init(file: "ggml-small.en-q5_1.bin", title: "Small (English)", detail: "Recommended balance", bytes: 190_098_681),
+        .init(file: "ggml-small.en-q5_1.bin", title: "Small (English)", detail: "Balanced, smaller download", bytes: 190_098_681),
         .init(file: "ggml-small-q5_1.bin", title: "Small (Multilingual)", detail: "Balanced, 99 languages", bytes: 190_085_487),
-        .init(file: "ggml-large-v3-turbo-q5_0.bin", title: "Large v3 Turbo (Q5)", detail: "Best accuracy, newer iPhones/iPads", bytes: 574_041_195),
+        .init(file: "ggml-large-v3-turbo-q5_0.bin", title: "Large v3 Turbo (Q5)", detail: "Recommended · best accuracy, 99 languages", bytes: 574_041_195),
         .init(file: "ggml-large-v3-turbo-q8_0.bin", title: "Large v3 Turbo (Q8)", detail: "Highest quality, 8 GB RAM devices", bytes: 874_188_075),
     ]
+
+    static let recommendedFile = "ggml-large-v3-turbo-q5_0.bin"
+
+    /// Most accurate installed model, preferring the recommended one, then later (larger) catalog entries.
+    static func preferred(among installed: [String]) -> String? {
+        if installed.contains(recommendedFile) { return recommendedFile }
+        let ranked = catalog.map(\.file).reversed()
+        return ranked.first(where: installed.contains) ?? installed.first
+    }
 }
 
 @MainActor
@@ -56,7 +65,7 @@ final class ModelManager: NSObject, ObservableObject {
         if let selected = settings.selectedModelFile, !installed.contains(selected) {
             settings.selectedModelFile = nil
         }
-        if settings.selectedModelFile == nil { settings.selectedModelFile = installed.first }
+        if settings.selectedModelFile == nil { settings.selectedModelFile = WhisperModelInfo.preferred(among: installed) }
     }
 
     func url(for file: String) -> URL { Self.directory.appendingPathComponent(file) }
@@ -143,7 +152,7 @@ extension ModelManager: URLSessionDownloadDelegate {
             } catch {
                 lastError = error.localizedDescription
             }
-            if AppSettings.shared.selectedModelFile == nil { AppSettings.shared.selectedModelFile = name }
+            AppSettings.shared.selectedModelFile = name
             refresh()
         }
     }

@@ -9,6 +9,7 @@ enum TranscriptionBackend: String, CaseIterable, Identifiable, Codable {
 }
 
 enum OptimizerBackend: String, CaseIterable, Identifiable, Codable {
+    case auto
     case off
     case apple
     case groq
@@ -16,6 +17,7 @@ enum OptimizerBackend: String, CaseIterable, Identifiable, Codable {
     var id: String { rawValue }
     var title: String {
         switch self {
+        case .auto: return "Automatic (Groq, else Apple)"
         case .off: return "Off (verbatim)"
         case .apple: return "Apple Intelligence (on-device)"
         case .groq: return "Groq LLM"
@@ -45,7 +47,7 @@ final class AppSettings: ObservableObject {
     private init() {
         let d = AppGroup.defaults
         transcriptionBackend = d.string(forKey: "transcriptionBackend").flatMap(TranscriptionBackend.init(rawValue:)) ?? .local
-        optimizerBackend = d.string(forKey: "optimizerBackend").flatMap(OptimizerBackend.init(rawValue:)) ?? .off
+        optimizerBackend = d.string(forKey: "optimizerBackend").flatMap(OptimizerBackend.init(rawValue:)) ?? .auto
         selectedModelFile = d.string(forKey: "selectedModelFile")
         language = d.string(forKey: "language") ?? "auto"
         vocabulary = d.string(forKey: "vocabulary") ?? ""
