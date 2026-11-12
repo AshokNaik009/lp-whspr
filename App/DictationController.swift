@@ -176,12 +176,14 @@ final class DictationController: ObservableObject {
         liveTask = Task { [weak self] in
             var lastCount = 0
             while !Task.isCancelled {
-                try? await Task.sleep(for: .milliseconds(800))
+                // In the background (keyboard) whisper runs on the CPU, so preview less often over a shorter
+                // window to leave the CPU free for the final pass.
+                let useGPU = UIApplication.shared.applicationState != .background
+                try? await Task.sleep(for: .milliseconds(useGPU ? 800 : 2000))
                 guard let self, !Task.isCancelled, self.state == .recording else { return }
-                let (samples, truncated) = self.capture.snapshot(lastSeconds: 25)
+                let (samples, truncated) = self.capture.snapshot(lastSeconds: useGPU ? 25 : 10)
                 guard samples.count > Int(AudioCapture.sampleRate * 0.8), samples.count != lastCount else { continue }
                 lastCount = samples.count
-                let useGPU = UIApplication.shared.applicationState != .background
                 let result = try? await Task.detached(priority: .userInitiated) { () throws -> WhisperResult in
                     try await WhisperEngine.shared.load(modelAt: modelURL, useGPU: useGPU)
                     return try await WhisperEngine.shared.transcribe(

@@ -87,8 +87,12 @@ struct SettingsView: View {
                     Text("The key is stored in this device's Keychain and only sent to api.groq.com.")
                 }
 
-                Section("Session") {
-                    Stepper("Keep mic session alive: \(settings.sessionTimeoutMinutes) min", value: $settings.sessionTimeoutMinutes, in: 1...60)
+                Section {
+                    Stepper("Keep mic session alive: \(settings.sessionTimeoutMinutes) min", value: $settings.sessionTimeoutMinutes, in: 5...240, step: 5)
+                } header: {
+                    Text("Session")
+                } footer: {
+                    Text("While a session is alive the keyboard mic records without opening the app (iOS shows the orange mic dot). Longer sessions mean fewer trips to the app but use more battery.")
                 }
             }
             .navigationTitle("Settings")

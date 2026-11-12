@@ -54,7 +54,7 @@ final class AppSettings: ObservableObject {
         groqTranscriptionModel = d.string(forKey: "groqTranscriptionModel") ?? "whisper-large-v3-turbo"
         groqChatModel = d.string(forKey: "groqChatModel") ?? "openai/gpt-oss-20b"
         let timeout = d.integer(forKey: "sessionTimeoutMinutes")
-        sessionTimeoutMinutes = timeout > 0 ? timeout : 10
+        sessionTimeoutMinutes = timeout > 0 ? timeout : 30
         cloudFallbackEnabled = d.object(forKey: "cloudFallbackEnabled") as? Bool ?? true
         liveTranscription = d.object(forKey: "liveTranscription") as? Bool ?? true
         let threshold = d.double(forKey: "fallbackConfidenceThreshold")

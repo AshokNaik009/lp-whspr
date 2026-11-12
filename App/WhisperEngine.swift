@@ -70,12 +70,14 @@ actor WhisperEngine {
             samples.append(contentsOf: [Float](repeating: 0, count: minimum - samples.count))
         }
 
-        // Beam search is noticeably more accurate than greedy decoding; keep the beam narrower on CPU (background) runs.
-        var params = whisper_full_default_params(fast ? WHISPER_SAMPLING_GREEDY : WHISPER_SAMPLING_BEAM_SEARCH)
-        if fast {
+        // Beam search is more accurate but several times slower; only use it on the GPU (foreground).
+        // Background (keyboard) runs are CPU-only, where beam search made a 6 s clip take ~18 s.
+        let useBeam = !fast && loadedWithGPU
+        var params = whisper_full_default_params(useBeam ? WHISPER_SAMPLING_BEAM_SEARCH : WHISPER_SAMPLING_GREEDY)
+        if useBeam {
+            params.beam_search.beam_size = 5
+        } else if fast {
             params.temperature_inc = 0
-        } else {
-            params.beam_search.beam_size = loadedWithGPU ? 5 : 3
         }
         params.print_realtime = false
         params.print_progress = false

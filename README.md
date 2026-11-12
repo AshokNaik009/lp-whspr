@@ -12,29 +12,45 @@ Notes, AI Prompt, To Arabic, custom) rewrite the transcript with Apple Intellige
 ┌─ Any app (WhatsApp, Notes, Mail…) ─┐                  ┌─ Leap Whisper app (background audio) ──┐
 │                                    │  start / stop    │                                        │
 │  LeapKeyboard (extension)          │ ───────────────▶ │  AudioCapture   AVAudioEngine, 16 kHz  │
-│   • mode chips  • mic toggle       │  Darwin notify + │        │                               │
-│   • inserts text via               │  App Group       │        ▼                               │
-│     textDocumentProxy              │                  │  WhisperEngine  whisper.cpp + Metal    │
-│                                    │   transcript     │        │  text + confidence            │
-│                                    │ ◀─────────────── │        ▼                               │
+│   • mode chips  • orb mic toggle   │  Darwin notify + │        │  ├─ every ~1 s: fast greedy    │
+│   • live-text strip                │  App Group       │        │  │  pass → live preview ───────┼─▶ keyboard + app
+│   • recent history (tap = insert)  │                  │        ▼  ▼                            │
+│   • inserts text via               │                  │  WhisperEngine  whisper.cpp            │
+│     textDocumentProxy              │   transcript     │   (Metal + beam search in foreground,  │
+│                                    │ ◀─────────────── │    CPU + greedy in background)         │
 └────────────────────────────────────┘                  │  FallbackPolicy ── low confidence ──┐  │
                                                         │        │ ok                         │  │
 ┌─ LeapWidgets ──────────────────────┐  open / start    │        │                            ▼  │      ┌─ Groq API ─────────────┐
 │  Home & Lock Screen widgets        │ ───────────────▶ │        │                  GroqClient ──┼────▶ │ whisper-large-v3-turbo │
 │  Control Center control            │                  │        ▼                     (WAV)     │      │ gpt-oss-20b (rewrite)  │
-│  Siri / Action Button intent       │                  │  TextOptimizer  mode rewrite:          │      └────────────────────────┘
-└────────────────────────────────────┘                  │                 Apple Intelligence     │
-                                                        │                 or Groq LLM            │
+│  Siri / Action Button intent       │                  │  TextOptimizer  mode rewrite/translate │      └────────────────────────┘
+└────────────────────────────────────┘                  │   Automatic: Apple Intelligence        │
+                                                        │   on-device, else Groq LLM             │
 ┌─ On device ────────────────────────┐                  │        │                               │
 │  Models/*.bin  ◀── Hugging Face    │ ◀──────────────▶ │        ▼                               │
 │  history.json   (History · Stats)  │                  │  HistoryStore · Stats · Calibration    │
+│  App Group: state, live text,      │                  │   (last 50 mirrored to the keyboard)   │
+│   modes, recent history            │                  │                                        │
 │  Keychain       (Groq API key)     │                  │                                        │
 └────────────────────────────────────┘                  └────────────────────────────────────────┘
 ```
 
-Flow: keyboard mic → app records → on-device whisper.cpp → if confidence is below the threshold (and it isn't
-silence), the WAV goes to Groq → selected mode rewrites the text → keyboard inserts it. Details:
-[specs/architecture.md](specs/architecture.md).
+Flow: keyboard mic → app records (live preview while you speak) → on-device whisper.cpp → if confidence is below
+the threshold (and it isn't silence), the WAV goes to Groq → selected mode rewrites or translates the text →
+keyboard inserts it. Details: [specs/architecture.md](specs/architecture.md).
+
+## Design
+
+The app uses a Liquid Glass look (iOS 26): a dark purple-blue aurora background, translucent glass cards and
+a glowing orb microphone that turns pink-orange and pulses while recording.
+
+- **Dictate:** orb mic with waveform and timer, live transcript card, a 3-column mode grid (Raw, Clean, Message,
+  Email, Notes, AI Prompt, To Arabic, custom) and the last transcript with Copy.
+- **Keyboard:** mode chips, gradient orb mic with pulse rings, cancel and timer while recording, a glass strip
+  with the live words, and a clock key that shows recent dictations to re-insert.
+- **History, Stats, Models, Settings:** standard iOS lists (to be restyled). Models shows the recommended
+  Large v3 Turbo, per-model size and a delete button.
+- **Onboarding:** a guided setup for downloading a model, adding the keyboard, Full Access and a practice field.
 
 ## How the keyboard dictates
 
@@ -46,7 +62,8 @@ iOS does not let keyboard extensions use the microphone, so the app owns the mic
 3. From then on, the keyboard mic sends `start`/`stop` commands over Darwin notifications and the
    App Group. The app transcribes, applies the selected mode and publishes the text. The keyboard inserts it via
    `textDocumentProxy`.
-4. The session ends after the idle timeout (Settings, default 10 min) or from the app.
+4. The session ends after the idle timeout (Settings, default 30 min, up to 4 h) or from the app. While the
+   session is alive, the keyboard never needs to open the app; a longer timeout means fewer trips to the app.
 
 The keyboard needs **Allow Full Access** to reach the shared App Group.
 
@@ -60,8 +77,12 @@ shortcut ("Dictate with Leap Whisper").
    a Groq key is set, the WAV is re-sent to Groq `whisper-large-v3-turbo`.
 3. The selected mode rewrites the text (or it is inserted verbatim).
 
-GPU (Metal) is used while the app is in the foreground. Background transcriptions use the CPU, because iOS blocks
-GPU work from background apps.
+GPU (Metal) and beam search are used while the app is in the foreground. Background (keyboard) transcriptions
+use the CPU with greedy decoding, because iOS blocks GPU work from background apps and beam search on the CPU is
+several times slower. For keyboard dictation, Small or Base models are much faster than Large v3 Turbo on the CPU.
+
+While recording, a fast greedy pass re-transcribes the latest audio (every ~0.8 s in the foreground, ~2 s in the
+background) and publishes it as a live preview to the app and keyboard. The final pass on stop replaces it.
 
 ## Models
 

@@ -46,7 +46,7 @@ struct GroqClient {
         request.httpMethod = "POST"
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        let payload: [String: Any] = [
+        var payload: [String: Any] = [
             "model": model,
             "temperature": 0.2,
             "messages": [
@@ -54,6 +54,8 @@ struct GroqClient {
                 ["role": "user", "content": user],
             ],
         ]
+        // gpt-oss models reason before answering; a rewrite doesn't need it and low effort cuts latency.
+        if model.hasPrefix("openai/gpt-oss") { payload["reasoning_effort"] = "low" }
         request.httpBody = try JSONSerialization.data(withJSONObject: payload)
 
         struct Response: Decodable {
