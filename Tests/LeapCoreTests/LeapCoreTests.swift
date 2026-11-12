@@ -133,4 +133,24 @@ final class WAVEncoderTests: XCTestCase {
         XCTAssertEqual(u32(40), 8)
         XCTAssertEqual([i16(44), i16(46), i16(48), i16(50)], [0, Int16.max, -Int16.max, Int16.max])
     }
+
+    func testPreprocessorTrimsSilenceAndKeepsMargin() {
+        let silence = [Float](repeating: 0, count: 16_000)
+        let speech = [Float](repeating: 0.5, count: 8_000)
+        let out = AudioPreprocessor.trimmed(silence + speech + silence)
+        XCTAssertEqual(out.count, 8_000 + 2 * 4_000)
+        XCTAssertEqual(AudioPreprocessor.trimmed(silence).count, silence.count)
+    }
+
+    func testPreprocessorBoostsQuietAudioWithCappedGain() {
+        XCTAssertEqual(AudioPreprocessor.normalized([0.3, -0.15]), [0.9, -0.45].map { Float($0) }, "boosted to target peak")
+        XCTAssertEqual(AudioPreprocessor.normalized([0.01]).first!, 0.08, accuracy: 1e-6, "gain capped at 8x")
+        XCTAssertEqual(AudioPreprocessor.normalized([0.95]), [0.95], "never attenuates")
+    }
+
+    func testPromptIncludesUserAndBuiltInTermsOnce() {
+        let prompt = TranscriptionPrompt.build(vocabulary: "Ashok, leap whisper\nKubernetes")
+        XCTAssertTrue(prompt.contains("Vocabulary: Ashok, leap whisper, Kubernetes, Wispr Flow"))
+        XCTAssertFalse(prompt.contains("Leap Whisper"), "built-in duplicate of a user term is dropped")
+    }
 }

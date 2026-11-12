@@ -186,7 +186,7 @@ final class DictationController: ObservableObject {
         }
         let started = Date()
         do {
-            let outcome = try await transcribe(samples: samples)
+            let outcome = try await transcribe(samples: AudioPreprocessor.prepare(samples, sampleRate: AudioCapture.sampleRate))
             let cleaned = TextOptimizer.cleanTranscript(outcome.text)
             guard !cleaned.isEmpty else {
                 update(state: .idle, message: "No speech detected.")
@@ -229,7 +229,7 @@ final class DictationController: ObservableObject {
 
     private func transcribe(samples: [Float]) async throws -> TranscriptionOutcome {
         let language = settings.language
-        let prompt = settings.vocabulary.isEmpty ? nil : settings.vocabulary
+        let prompt = TranscriptionPrompt.build(vocabulary: settings.vocabulary)
         let groqKey = settings.groqAPIKey
 
         func cloud(_ reason: String, confidence: Float? = nil) async throws -> TranscriptionOutcome {

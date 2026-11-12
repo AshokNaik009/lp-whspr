@@ -123,16 +123,92 @@ Bundle IDs: `$(LEAP_BUNDLE_PREFIX).app`, `.app.keyboard` and `.app.widgets`. App
 
 ## TestFlight
 
-1. Apple Developer Program membership ($99/yr).
-2. In App Store Connect, create the app record with bundle ID `$(LEAP_BUNDLE_PREFIX).app`.
-3. Create an App Store Connect API key (Users and Access > Integrations, App Manager role).
-4. Upload:
-   ```bash
-   LEAP_TEAM_ID=… LEAP_BUNDLE_PREFIX=… ASC_KEY_ID=… ASC_ISSUER_ID=… ASC_KEY_PATH=./AuthKey_….p8 ./scripts/testflight.sh
-   ```
-   Or run the `iOS` GitHub workflow with `testflight: true`. It needs these secrets: `ASC_KEY_P8`, `ASC_KEY_ID`, `ASC_ISSUER_ID`,
-   `LEAP_TEAM_ID` and `LEAP_BUNDLE_PREFIX`.
-5. Add internal testers in TestFlight. They can install right away, without review.
+Step-by-step for anyone who clones this repo and wants to ship their own beta. TestFlight needs a paid
+[Apple Developer Program](https://developer.apple.com/programs/) membership ($99/yr); a free Apple ID can only
+install over USB (see [Build](#build)).
+
+### 1. Pick your identifiers
+
+Apple IDs are global, so use your own reverse-DNS prefix:
+
+```bash
+cp Config/Local.xcconfig.example Config/Local.xcconfig   # git-ignored
+# LEAP_TEAM_ID       = your 10-character Team ID (developer.apple.com > Account > Membership details)
+# LEAP_BUNDLE_PREFIX = e.g. com.yourname.leapwhisper
+```
+
+This produces bundle IDs `<prefix>.app`, `<prefix>.app.keyboard`, `<prefix>.app.widgets` and the App Group
+`group.<prefix>.shared`.
+
+### 2. Register them in the Developer portal
+
+[Certificates, Identifiers & Profiles](https://developer.apple.com/account/resources/identifiers/list):
+
+1. **Identifiers > App Groups > +**: `group.<prefix>.shared`.
+2. **Identifiers > App IDs > +** for each of the three bundle IDs, enabling the **App Groups** capability and
+   selecting the group above.
+
+Xcode's automatic signing (`-allowProvisioningUpdates`) can create these for you on the first archive, but
+registering them up front avoids "no profiles found" errors.
+
+### 3. Create the app in App Store Connect
+
+[App Store Connect](https://appstoreconnect.apple.com) > **Apps > + > New App**: platform iOS, any name, bundle ID
+`<prefix>.app`, any SKU. Only the main app needs a record; the keyboard and widgets ship inside it.
+
+### 4. Create an API key for uploads
+
+App Store Connect > **Users and Access > Integrations > App Store Connect API > +**, role **App Manager**.
+Note the **Issuer ID** and **Key ID**, and download `AuthKey_<KEYID>.p8` (downloadable only once). Never commit
+it; `*.p8` is git-ignored.
+
+### 5. Upload a build
+
+**From a Mac** (Xcode 16+, `brew install xcodegen`):
+
+```bash
+LEAP_TEAM_ID=ABCDE12345 \
+LEAP_BUNDLE_PREFIX=com.yourname.leapwhisper \
+ASC_KEY_ID=XXXXXXXXXX \
+ASC_ISSUER_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx \
+ASC_KEY_PATH=~/keys/AuthKey_XXXXXXXXXX.p8 \
+./scripts/testflight.sh
+```
+
+[`scripts/testflight.sh`](scripts/testflight.sh) generates the project, archives a Release build, exports it
+for App Store Connect and uploads it. The build number defaults to a timestamp (override with `BUILD_NUMBER`);
+bump `MARKETING_VERSION` in `project.yml` for a new version.
+
+**Or from GitHub Actions** (no Mac needed): add these repository secrets under Settings > Secrets and variables >
+Actions:
+
+| Secret | Value |
+| --- | --- |
+| `LEAP_TEAM_ID` | Team ID |
+| `LEAP_BUNDLE_PREFIX` | e.g. `com.yourname.leapwhisper` |
+| `ASC_KEY_ID` | API key ID |
+| `ASC_ISSUER_ID` | Issuer ID |
+| `ASC_KEY_P8` | full contents of the `.p8` file, including the BEGIN/END lines |
+
+Then **Actions > iOS > Run workflow**, tick **Upload to TestFlight**. The run number becomes the build number.
+
+### 6. Invite testers
+
+The build shows up under **TestFlight** after 10–30 minutes of processing. The app already declares
+`ITSAppUsesNonExemptEncryption = NO`, so there's no export-compliance prompt.
+
+- **Internal testers** (up to 100 members of your App Store Connect team): add them to an internal group and they
+  can install immediately, without review.
+- **External testers** (up to 10,000): create an external group, add the build, fill in the beta description and
+  submit it for Beta App Review (usually about a day). You can then share a public link.
+
+Testers install the free **TestFlight** app, open the invite, and set up the keyboard the same way as a USB build
+(the in-app setup guide walks through it). TestFlight builds expire after 90 days.
+
+### Before a public beta
+
+Testers paste their own Groq key in Settings (it stays in their Keychain). Don't bake a shared key into the
+binary; for a wide beta or the App Store, put Groq behind a small proxy (see [Secrets](#secrets)).
 
 ## Layout
 

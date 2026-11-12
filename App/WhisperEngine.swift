@@ -69,7 +69,9 @@ actor WhisperEngine {
             samples.append(contentsOf: [Float](repeating: 0, count: minimum - samples.count))
         }
 
-        var params = whisper_full_default_params(WHISPER_SAMPLING_GREEDY)
+        // Beam search is noticeably more accurate than greedy decoding; keep the beam narrower on CPU (background) runs.
+        var params = whisper_full_default_params(WHISPER_SAMPLING_BEAM_SEARCH)
+        params.beam_search.beam_size = loadedWithGPU ? 5 : 3
         params.print_realtime = false
         params.print_progress = false
         params.print_timestamps = false
