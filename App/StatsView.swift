@@ -46,6 +46,7 @@ struct StatsView: View {
                 }
                 .padding()
             }
+            .themedBackground()
             .navigationTitle("Stats")
         }
     }

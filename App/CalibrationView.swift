@@ -169,7 +169,8 @@ struct CalibrationView: View {
                 }
             }
         }
-        .navigationTitle("Calibration")
+        .themedBackground()
+            .navigationTitle("Calibration")
         .onDisappear {
             if runner.phase == .recording { _ = controller.endCalibrationCapture() }
         }

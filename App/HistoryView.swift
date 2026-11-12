@@ -42,6 +42,7 @@ struct HistoryView: View {
                 }
             }
             .searchable(text: $query, prompt: "Search transcripts")
+            .themedBackground()
             .navigationTitle("History")
             .navigationDestination(for: DictationRecord.self) { HistoryDetailView(record: $0) }
             .toolbar {
@@ -102,7 +103,8 @@ private struct HistoryDetailView: View {
                 LabeledContent("Date", value: record.date.formatted(date: .abbreviated, time: .shortened))
             }
         }
-        .navigationTitle("Dictation")
+        .themedBackground()
+            .navigationTitle("Dictation")
         .navigationBarTitleDisplayMode(.inline)
     }
 }

@@ -42,6 +42,8 @@ struct LeapWhisperShortcuts: AppShortcutsProvider {
 }
 
 struct RootView: View {
+    @EnvironmentObject private var settings: AppSettings
+
     var body: some View {
         TabView {
             HomeView()
@@ -55,8 +57,9 @@ struct RootView: View {
             SettingsView()
                 .tabItem { Label("Settings", systemImage: "gearshape") }
         }
-        .tint(Theme.accent)
+        .tint(settings.appearance.isFlat ? FlatPalette.ink : Theme.accent)
         .environment(\.font, .jakarta(.body))
-        .preferredColorScheme(.dark)
+        .environment(\.flatTheme, settings.appearance.isFlat)
+        .preferredColorScheme(settings.appearance.colorScheme)
     }
 }

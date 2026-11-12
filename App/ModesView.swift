@@ -25,7 +25,8 @@ struct ModesView: View {
                 Button("Reset to defaults", role: .destructive) { modes = DictationMode.defaults }
             }
         }
-        .navigationTitle("Modes")
+        .themedBackground()
+            .navigationTitle("Modes")
         .toolbar { EditButton() }
         .onChange(of: modes) { _, newValue in SharedStore.modes = newValue }
     }
@@ -42,6 +43,7 @@ private struct ModeEditor: View {
                 TextEditor(text: $mode.instructions).frame(minHeight: 180)
             }
         }
-        .navigationTitle(mode.name)
+        .themedBackground()
+            .navigationTitle(mode.name)
     }
 }

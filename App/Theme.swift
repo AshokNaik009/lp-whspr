@@ -11,14 +11,20 @@ enum Theme {
 struct AuroraBackground: View {
     var energy: Double = 0
 
+    @Environment(\.flatTheme) private var flat
+
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 30)) { context in
-            let t = context.date.timeIntervalSinceReferenceDate
-            MeshGradient(width: 3, height: 3, points: Self.points(at: t), colors: colors)
-                .overlay(Color.black.opacity(0.28 - 0.16 * energy))
+        if flat {
+            FlatPalette.canvas.ignoresSafeArea()
+        } else {
+            TimelineView(.animation(minimumInterval: 1.0 / 30)) { context in
+                let t = context.date.timeIntervalSinceReferenceDate
+                MeshGradient(width: 3, height: 3, points: Self.points(at: t), colors: colors)
+                    .overlay(Color.black.opacity(0.28 - 0.16 * energy))
+            }
+            .ignoresSafeArea()
+            .animation(.easeInOut(duration: 0.6), value: energy)
         }
-        .ignoresSafeArea()
-        .animation(.easeInOut(duration: 0.6), value: energy)
     }
 
     private var colors: [Color] {
@@ -43,9 +49,18 @@ struct AuroraBackground: View {
 }
 
 extension View {
+    /// Liquid Glass in the Glass theme; a flat card with a hairline border in the Light/Dark themes.
+    func glass<S: Shape>(in shape: S, tint: Color? = nil, interactive: Bool = false) -> some View {
+        modifier(GlassSurface(shape: shape, tint: tint, interactive: interactive))
+    }
+
+    func glassCard(cornerRadius: CGFloat = 24, tint: Color? = nil) -> some View {
+        modifier(GlassCard(cornerRadius: cornerRadius, tint: tint))
+    }
+
     /// Liquid Glass on iOS 26+, frosted material with a hairline border on earlier systems and SDKs.
     @ViewBuilder
-    func glass<S: Shape>(in shape: S, tint: Color? = nil, interactive: Bool = false) -> some View {
+    fileprivate func liquidGlass<S: Shape>(in shape: S, tint: Color?, interactive: Bool) -> some View {
         #if compiler(>=6.2)
         if #available(iOS 26.0, *) {
             let base = interactive ? Glass.regular.interactive() : Glass.regular
@@ -56,10 +71,6 @@ extension View {
         #else
         materialGlass(in: shape, tint: tint)
         #endif
-    }
-
-    func glassCard(cornerRadius: CGFloat = 24, tint: Color? = nil) -> some View {
-        glass(in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous), tint: tint)
     }
 
     private func materialGlass<S: Shape>(in shape: S, tint: Color?) -> some View {
@@ -73,13 +84,69 @@ extension View {
     }
 }
 
-/// Glowing orb used as the main mic button.
+private struct GlassSurface<S: Shape>: ViewModifier {
+    @Environment(\.flatTheme) private var flat
+    let shape: S
+    let tint: Color?
+    let interactive: Bool
+
+    func body(content: Content) -> some View {
+        if flat {
+            content
+                .background(shape.fill(tint ?? FlatPalette.surfaceCard))
+                .overlay(shape.stroke(FlatPalette.hairline, lineWidth: 1))
+        } else {
+            content.liquidGlass(in: shape, tint: tint, interactive: interactive)
+        }
+    }
+}
+
+private struct GlassCard: ViewModifier {
+    @Environment(\.flatTheme) private var flat
+    let cornerRadius: CGFloat
+    let tint: Color?
+
+    func body(content: Content) -> some View {
+        content.glass(in: RoundedRectangle(cornerRadius: flat ? 4 : cornerRadius, style: .continuous), tint: tint)
+    }
+}
+
+/// Glowing orb used as the main mic button; a flat ink disc in the Light/Dark themes.
 struct OrbView: View {
     var level: CGFloat
     var isRecording: Bool
     var isBusy: Bool
+    @Environment(\.flatTheme) private var flat
 
     var body: some View {
+        if flat { flatOrb } else { glowingOrb }
+    }
+
+    private var flatOrb: some View {
+        ZStack {
+            Circle()
+                .stroke(isRecording ? FlatPalette.danger.opacity(0.5) : FlatPalette.hairline, lineWidth: 1)
+                .frame(width: 190, height: 190)
+                .scaleEffect(1 + level * 0.25)
+            Circle()
+                .fill(isRecording ? FlatPalette.danger : FlatPalette.ink)
+                .frame(width: 132, height: 132)
+                .scaleEffect(1 + level * 0.08)
+            if isBusy {
+                ProgressView().tint(FlatPalette.canvas).scaleEffect(1.5)
+            } else {
+                Image(systemName: isRecording ? "stop.fill" : "mic.fill")
+                    .font(.jakarta(size: 40, weight: .semibold))
+                    .foregroundStyle(isRecording ? Color.white : FlatPalette.canvas)
+                    .contentTransition(.symbolEffect(.replace))
+            }
+        }
+        .frame(width: 240, height: 240)
+        .animation(.easeOut(duration: 0.12), value: level)
+        .animation(.spring(duration: 0.35), value: isRecording)
+    }
+
+    private var glowingOrb: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 30, paused: !isRecording && !isBusy)) { context in
             let angle = Angle.degrees(context.date.timeIntervalSinceReferenceDate * (isRecording ? 90 : 30))
             ZStack {

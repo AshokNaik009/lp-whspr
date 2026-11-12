@@ -181,9 +181,10 @@ struct GuideTopic: Identifiable {
             ]
         ),
         GuideTopic(
-            id: "look", icon: "paintpalette.fill", tint: .mint, title: "Customise the keyboard",
-            summary: "Give the keyboard a gradient background.",
+            id: "look", icon: "paintpalette.fill", tint: .mint, title: "Customise the look",
+            summary: "Light or dark app theme, and a gradient keyboard.",
             steps: [
+                "Go to Settings > Appearance: Glass is the aurora look, Light and Dark are flat ink-on-cream themes, System follows your iPhone.",
                 "Go to Settings > Keyboard background.",
                 "Pick Default, or one of the gradients: Aurora, Sunset, Ocean, Forest, Rose or Midnight.",
                 "Pick Custom to choose your own start and end colours.",

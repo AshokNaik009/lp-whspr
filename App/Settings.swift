@@ -43,6 +43,7 @@ final class AppSettings: ObservableObject {
     /// Show words while speaking (fast on-device passes); the final text still comes from a full pass on stop.
     @Published var liveTranscription: Bool { didSet { save(liveTranscription, "liveTranscription") } }
     @Published var fallbackConfidenceThreshold: Double { didSet { save(fallbackConfidenceThreshold, "fallbackConfidenceThreshold") } }
+    @Published var appearance: AppAppearance { didSet { save(appearance.rawValue, "appearance") } }
 
     private init() {
         let d = AppGroup.defaults
@@ -59,6 +60,7 @@ final class AppSettings: ObservableObject {
         liveTranscription = d.object(forKey: "liveTranscription") as? Bool ?? true
         let threshold = d.double(forKey: "fallbackConfidenceThreshold")
         fallbackConfidenceThreshold = threshold > 0 ? threshold : 0.55
+        appearance = d.string(forKey: "appearance").flatMap(AppAppearance.init(rawValue:)) ?? .glass
     }
 
     var groqAPIKey: String? {

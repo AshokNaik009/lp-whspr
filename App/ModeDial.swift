@@ -3,6 +3,7 @@ import UIKit
 
 /// A rotary dial for picking the dictation mode: drag to turn, it snaps to the mode at the top.
 struct ModeDial: View {
+    @Environment(\.flatTheme) private var flat
     let modes: [DictationMode]
     @Binding var selectedID: String
 
@@ -21,15 +22,15 @@ struct ModeDial: View {
                 .fill(.clear)
                 .frame(width: (radius + 40) * 2, height: (radius + 40) * 2)
                 .glass(in: Circle())
-                .overlay(Circle().stroke(Theme.accent.opacity(0.35), lineWidth: 1))
+                .overlay(Circle().stroke(flat ? FlatPalette.hairline : Theme.accent.opacity(0.35), lineWidth: 1))
                 .position(center)
             ForEach(Array(modes.enumerated()), id: \.element.id) { index, mode in
                 item(mode, index: index)
             }
             Capsule()
-                .fill(Theme.accent)
+                .fill(flat ? FlatPalette.ink : Theme.accent)
                 .frame(width: 26, height: 4)
-                .shadow(color: Theme.accent.opacity(0.8), radius: 6)
+                .shadow(color: flat ? .clear : Theme.accent.opacity(0.8), radius: 6)
                 .position(x: center.x, y: 10)
         }
         .frame(width: (radius + 44) * 2, height: radius + 60)
@@ -60,14 +61,15 @@ struct ModeDial: View {
             VStack(spacing: 5) {
                 Image(systemName: mode.symbol)
                     .font(.jakarta(size: selected ? 20 : 16, weight: .semibold))
+                    .foregroundStyle(selected && flat ? FlatPalette.canvas : Color.primary)
                     .frame(width: selected ? 50 : 40, height: selected ? 50 : 40)
-                    .glass(in: Circle(), tint: selected ? Theme.accent : nil)
+                    .glass(in: Circle(), tint: selected ? (flat ? FlatPalette.ink : Theme.accent) : nil)
                 Text(mode.name)
                     .font(.jakarta(.caption, selected ? .bold : .medium))
                     .lineLimit(1)
                     .fixedSize()
             }
-            .foregroundStyle(selected ? Color.white : Color.white.opacity(0.75))
+            .foregroundStyle(selected ? Color.primary : Color.primary.opacity(0.75))
         }
         .buttonStyle(.plain)
         .opacity(visibility)

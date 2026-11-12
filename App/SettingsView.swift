@@ -22,6 +22,17 @@ struct SettingsView: View {
                     }
                 }
 
+                Section {
+                    Picker("Appearance", selection: $settings.appearance) {
+                        ForEach(AppAppearance.allCases) { Text($0.title).tag($0) }
+                    }
+                    .pickerStyle(.segmented)
+                } header: {
+                    Text("Appearance")
+                } footer: {
+                    Text("Glass is the dark aurora look. Light and Dark are flat ink-on-cream themes; System follows your iPhone's setting.")
+                }
+
                 Section("Transcription") {
                     Picker("Engine", selection: $settings.transcriptionBackend) {
                         ForEach(TranscriptionBackend.allCases) { Text($0.title).tag($0) }
@@ -105,6 +116,7 @@ struct SettingsView: View {
                     Text("While a session is alive the keyboard mic records without opening the app (iOS shows the orange mic dot). Longer sessions mean fewer trips to the app but use more battery.")
                 }
             }
+            .themedBackground()
             .navigationTitle("Settings")
         }
     }

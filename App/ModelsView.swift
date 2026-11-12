@@ -81,6 +81,7 @@ struct ModelsView: View {
                     Text("Any whisper.cpp ggml model works. Models are stored on this device only.")
                 }
             }
+            .themedBackground()
             .navigationTitle("Models")
             .confirmationDialog(
                 "Delete \(pendingDelete.map(displayName) ?? "model")?",

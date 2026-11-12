@@ -2,6 +2,7 @@ import SwiftUI
 import UIKit
 
 struct HomeView: View {
+    @Environment(\.flatTheme) private var flat
     @EnvironmentObject private var controller: DictationController
     @EnvironmentObject private var settings: AppSettings
     @EnvironmentObject private var models: ModelManager
@@ -15,6 +16,7 @@ struct HomeView: View {
     @State private var copied = false
     @ObservedObject private var history = HistoryStore.shared
     @State private var showsOnboarding = false
+    @State private var scrollPosition = ScrollPosition(edge: .top)
     @AppStorage("onboarding.presented") private var onboardingPresented = false
 
     private static let silentLevels = [CGFloat](repeating: 0, count: 36)
@@ -29,14 +31,16 @@ struct HomeView: View {
                     }
                     if !history.records.isEmpty { timeSavedCard }
                     recorderCard
-                    modeSection
                     if !controller.lastTranscript.isEmpty { transcriptCard }
+                    modeSection
                     if !setupComplete { setupChecklist }
                 }
                 .padding(.horizontal, 20)
                 .padding(.bottom, 24)
             }
             .scrollIndicators(.hidden)
+            .scrollPosition($scrollPosition)
+            .onChange(of: controller.lastTranscript) { _, _ in scrollToTop() }
             .background(AuroraBackground(energy: isRecording ? 1 : 0))
             .toolbar(.hidden, for: .navigationBar)
             .onAppear {
@@ -62,8 +66,14 @@ struct HomeView: View {
             .onChange(of: controller.state) { _, state in
                 recordingStart = state == .recording ? Date() : nil
                 if state != .recording { levels = Self.silentLevels }
+                if state != .idle { scrollToTop() }
             }
         }
+    }
+
+    /// Keeps the mic, live words and the new transcript in view when a dictation starts or finishes.
+    private func scrollToTop() {
+        withAnimation(.easeOut(duration: 0.3)) { scrollPosition.scrollTo(edge: .top) }
     }
 
     // MARK: Header
@@ -112,15 +122,15 @@ struct HomeView: View {
             }
             Text("Tap ◀ in the top-left corner. Keep talking; your words appear where you were typing. Tap ■ in the Leap Whisper keyboard to finish.")
                 .font(.jakarta(.subheadline))
-                .foregroundStyle(.white.opacity(0.9))
+                .foregroundStyle(Color.primary.opacity(0.9))
             Text("From now on the keyboard mic records without opening this app.")
                 .font(.jakarta(.footnote))
-                .foregroundStyle(.white.opacity(0.75))
+                .foregroundStyle(Color.primary.opacity(0.75))
         }
-        .foregroundStyle(.white)
+        .foregroundStyle(Color.primary)
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
-        .glassCard(cornerRadius: 22, tint: .orange)
+        .glassCard(cornerRadius: 22, tint: flat ? .orange.opacity(0.25) : .orange)
     }
 
     // MARK: Recorder
@@ -136,14 +146,14 @@ struct HomeView: View {
                     TimelineView(.periodic(from: .now, by: 1.5)) { context in
                         Text(BusyPhrases.phrase(at: context.date))
                             .font(.jakarta(.headline))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(Color.primary)
                             .contentTransition(.opacity)
                             .animation(.easeInOut(duration: 0.3), value: context.date)
                     }
                 } else {
                     Text(statusTitle)
                         .font(.jakarta(.headline))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Color.primary)
                 }
                 statusDetail
             }
@@ -152,7 +162,7 @@ struct HomeView: View {
             if !controller.liveText.isEmpty && (isRecording || controller.state == .transcribing) {
                 Text(controller.liveText)
                     .font(.jakarta(.body))
-                    .foregroundStyle(.white.opacity(controller.state == .transcribing ? 0.6 : 0.95))
+                    .foregroundStyle(Color.primary.opacity(controller.state == .transcribing ? 0.6 : 0.95))
                     .lineLimit(5)
                     .truncationMode(.head)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -168,7 +178,7 @@ struct HomeView: View {
                     .padding(.horizontal, 14)
                     .padding(.vertical, 7)
                     .glass(in: Capsule(), interactive: true)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Color.primary)
                     .buttonStyle(.plain)
             }
         }
@@ -192,7 +202,7 @@ struct HomeView: View {
         HStack(alignment: .center, spacing: 3) {
             ForEach(levels.indices, id: \.self) { index in
                 Capsule()
-                    .fill(.white.opacity(isRecording ? 0.9 : 0.35))
+                    .fill(Color.primary.opacity(isRecording ? 0.9 : 0.35))
                     .frame(width: 4, height: max(4, levels[index] * 40))
             }
         }
@@ -207,16 +217,16 @@ struct HomeView: View {
             TimelineView(.periodic(from: start, by: 1)) { context in
                 Text(Self.elapsed(from: start, to: context.date))
                     .font(.jakarta(.subheadline).monospacedDigit())
-                    .foregroundStyle(.white.opacity(0.85))
+                    .foregroundStyle(Color.primary.opacity(0.85))
             }
         } else if let message = controller.statusMessage {
             Text(message)
                 .font(.jakarta(.footnote))
-                .foregroundStyle(controller.state == .error ? Color(red: 1, green: 0.85, blue: 0.85) : .white.opacity(0.8))
+                .foregroundStyle(controller.state == .error ? (flat ? FlatPalette.danger : Color(red: 1, green: 0.85, blue: 0.85)) : Color.primary.opacity(0.8))
         } else {
             Text(controller.isSessionActive ? "Tap the mic and start talking" : "Starts a session the keyboard can use")
                 .font(.jakarta(.footnote))
-                .foregroundStyle(.white.opacity(0.8))
+                .foregroundStyle(Color.primary.opacity(0.8))
         }
     }
 
@@ -274,26 +284,26 @@ struct HomeView: View {
         return HStack(spacing: 14) {
             Image(systemName: "hourglass")
                 .font(.jakarta(.title2, .semibold))
-                .foregroundStyle(LinearGradient(colors: [.cyan, .purple], startPoint: .top, endPoint: .bottom))
+                .foregroundStyle(flat ? AnyShapeStyle(Color.primary) : AnyShapeStyle(LinearGradient(colors: [.cyan, .purple], startPoint: .top, endPoint: .bottom)))
                 .frame(width: 44, height: 44)
                 .glass(in: Circle())
             VStack(alignment: .leading, spacing: 2) {
                 Text("Time saved")
                     .font(.jakarta(.caption, .medium))
-                    .foregroundStyle(.white.opacity(0.7))
+                    .foregroundStyle(Color.primary.opacity(0.7))
                 Text(StatsView.duration(minutes: stats.minutesSaved))
                     .font(.jakarta(.title2, .bold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Color.primary)
                     .monospacedDigit()
             }
             Spacer()
             VStack(alignment: .trailing, spacing: 2) {
                 Text("\(stats.words.formatted()) words")
                     .font(.jakarta(.subheadline, .semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Color.primary)
                 Text("\(Int(stats.wordsPerMinute.rounded())) WPM vs \(Int(DictationStats.typingWordsPerMinute)) typing")
                     .font(.jakarta(.caption2))
-                    .foregroundStyle(.white.opacity(0.65))
+                    .foregroundStyle(Color.primary.opacity(0.65))
             }
         }
         .padding(16)
