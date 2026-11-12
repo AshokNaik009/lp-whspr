@@ -7,3 +7,6 @@ DerivedData/
 *.dSYM.zip
 Config/Local.xcconfig
 *.p8
+App/Info.plist
+Keyboard/Info.plist
+Widgets/Info.plist
