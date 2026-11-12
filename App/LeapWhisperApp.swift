@@ -48,5 +48,6 @@ struct RootView: View {
                 .tabItem { Label("Settings", systemImage: "gearshape") }
         }
         .tint(Theme.accent)
+        .preferredColorScheme(.dark)
     }
 }

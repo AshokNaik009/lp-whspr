@@ -1,12 +1,6 @@
 import SwiftUI
 import UIKit
 
-enum Theme {
-    static let accent = Color(red: 0.43, green: 0.36, blue: 0.98)
-    static let accentSecondary = Color(red: 0.18, green: 0.60, blue: 1.0)
-    static let gradient = LinearGradient(colors: [accent, accentSecondary], startPoint: .topLeading, endPoint: .bottomTrailing)
-}
-
 struct HomeView: View {
     @EnvironmentObject private var controller: DictationController
     @EnvironmentObject private var settings: AppSettings
@@ -40,6 +34,8 @@ struct HomeView: View {
                 .padding(.horizontal, 20)
                 .padding(.bottom, 24)
             }
+            .scrollIndicators(.hidden)
+            .background(AuroraBackground(energy: isRecording ? 1 : 0))
             .toolbar(.hidden, for: .navigationBar)
             .onAppear {
                 modes = SharedStore.modes
@@ -84,7 +80,7 @@ struct HomeView: View {
                 .lineLimit(1)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
-                .background(Color(.secondarySystemBackground), in: Capsule())
+                .glass(in: Capsule())
                 .foregroundStyle(hasEngine ? Color.primary : Color.orange)
         }
         .padding(.top, 12)
@@ -122,7 +118,7 @@ struct HomeView: View {
         .foregroundStyle(.white)
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
-        .background(Color.orange.gradient, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .glassCard(cornerRadius: 22, tint: .orange)
     }
 
     // MARK: Recorder
@@ -146,47 +142,24 @@ struct HomeView: View {
                     .font(.footnote.weight(.semibold))
                     .padding(.horizontal, 14)
                     .padding(.vertical, 7)
-                    .background(.white.opacity(0.18), in: Capsule())
+                    .glass(in: Capsule(), interactive: true)
                     .foregroundStyle(.white)
                     .buttonStyle(.plain)
             }
         }
-        .padding(.vertical, 28)
+        .padding(.vertical, 8)
         .frame(maxWidth: .infinity)
-        .background(Theme.gradient, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
-        .shadow(color: Theme.accent.opacity(0.35), radius: 18, y: 8)
     }
 
     private var micButton: some View {
-        let level = CGFloat(controller.level)
-        return Button {
+        Button {
             controller.toggleRecording()
         } label: {
-            ZStack {
-                ForEach(0..<3, id: \.self) { ring in
-                    Circle()
-                        .stroke(.white.opacity(0.22 - Double(ring) * 0.06), lineWidth: 2)
-                        .frame(width: 124 + CGFloat(ring) * 30, height: 124 + CGFloat(ring) * 30)
-                        .scaleEffect(isRecording ? 1 + level * 0.12 * CGFloat(ring + 1) : 1)
-                }
-                Circle()
-                    .fill(isRecording ? Color.red : Color.white)
-                    .frame(width: 108, height: 108)
-                    .shadow(color: .black.opacity(0.2), radius: 10, y: 4)
-                if controller.state == .transcribing {
-                    ProgressView().tint(Theme.accent).scaleEffect(1.5)
-                } else {
-                    Image(systemName: isRecording ? "stop.fill" : "mic.fill")
-                        .font(.system(size: 42, weight: .semibold))
-                        .foregroundStyle(isRecording ? AnyShapeStyle(.white) : AnyShapeStyle(Theme.gradient))
-                }
-            }
-            .frame(width: 200, height: 200)
-            .animation(.easeOut(duration: 0.12), value: controller.level)
-            .animation(.spring(duration: 0.3), value: isRecording)
+            OrbView(level: CGFloat(controller.level), isRecording: isRecording, isBusy: controller.state == .transcribing)
         }
         .buttonStyle(.plain)
         .disabled(controller.state == .transcribing)
+        .sensoryFeedback(.impact(weight: .medium), trigger: isRecording)
         .accessibilityLabel(isRecording ? "Stop recording" : "Start recording")
     }
 
@@ -272,11 +245,13 @@ struct HomeView: View {
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 14)
-            .background(
-                selected ? AnyShapeStyle(Theme.gradient) : AnyShapeStyle(Color(.secondarySystemBackground)),
-                in: RoundedRectangle(cornerRadius: 16, style: .continuous)
-            )
-            .foregroundStyle(selected ? Color.white : Color.primary)
+            .glass(in: RoundedRectangle(cornerRadius: 18, style: .continuous), tint: selected ? Theme.accent : nil, interactive: true)
+            .overlay {
+                if selected {
+                    RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(Theme.accent.opacity(0.9), lineWidth: 1.5)
+                }
+            }
+            .foregroundStyle(selected ? Color.white : Color.primary.opacity(0.85))
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(selected ? .isSelected : [])
@@ -303,7 +278,7 @@ struct HomeView: View {
                         .font(.caption2.weight(.medium))
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
-                        .background(Color(.tertiarySystemFill), in: Capsule())
+                        .glass(in: Capsule())
                         .foregroundStyle(.secondary)
                 }
             }
@@ -330,7 +305,7 @@ struct HomeView: View {
             .tint(Theme.accent)
         }
         .padding()
-        .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .glassCard()
     }
 
     // MARK: Setup
@@ -375,7 +350,7 @@ struct HomeView: View {
                 .padding(.vertical, 10)
             }
             .padding(.horizontal, 14)
-            .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .glassCard()
         }
     }
 
