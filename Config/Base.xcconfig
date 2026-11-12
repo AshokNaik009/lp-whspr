@@ -1,0 +1,6 @@
+// Override these in Config/Local.xcconfig (git-ignored) or via xcodebuild args.
+LEAP_TEAM_ID =
+LEAP_BUNDLE_PREFIX = com.leapwhisper
+LEAP_APP_GROUP = group.$(LEAP_BUNDLE_PREFIX).shared
+
+#include? "Local.xcconfig"

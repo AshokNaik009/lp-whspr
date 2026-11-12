@@ -1,0 +1,9 @@
+*.xcodeproj/
+build/
+DerivedData/
+.build/
+.swiftpm/
+*.ipa
+*.dSYM.zip
+Config/Local.xcconfig
+*.p8

@@ -1,0 +1,259 @@
+import AVFoundation
+import SwiftUI
+import UIKit
+
+/// Owns the background dictation session: keeps the mic engine alive, reacts to keyboard commands,
+/// transcribes (on-device first, Groq as fallback), applies the optimization mode and hands text back.
+@MainActor
+final class DictationController: ObservableObject {
+    static let shared = DictationController()
+
+    @Published private(set) var state: DictationState = .idle
+    @Published private(set) var statusMessage: String?
+    @Published private(set) var isSessionActive = false
+    @Published private(set) var level: Float = 0
+    @Published private(set) var lastTranscript: String = ""
+    @Published private(set) var lastSource: String = ""
+    @Published var openedFromKeyboard = false
+
+    private let capture = AudioCapture()
+    private let settings = AppSettings.shared
+    private var currentModeID: String?
+    private var lastCommandID: UUID?
+    private var lastActivity = Date()
+    private var idleTimer: Timer?
+
+    private init() {
+        capture.onTick = {
+            SharedStore.touchHeartbeat()
+            Task { @MainActor in DictationController.shared.checkIdleTimeout() }
+        }
+        capture.onLevel = { value in
+            Task { @MainActor in DictationController.shared.level = value }
+        }
+        DarwinNotifier.shared.observe(.command) {
+            Task { @MainActor in DictationController.shared.handleCommand() }
+        }
+        DarwinNotifier.shared.observe(.pendingStart) {
+            Task { @MainActor in
+                if UIApplication.shared.applicationState == .active { DictationController.shared.handlePendingStart() }
+            }
+        }
+        NotificationCenter.default.addObserver(forName: AVAudioSession.interruptionNotification, object: nil, queue: .main) { note in
+            let type = (note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt).flatMap(AVAudioSession.InterruptionType.init(rawValue:))
+            Task { @MainActor in
+                if type == .began { DictationController.shared.endSession(reason: "Session interrupted by another app.") }
+            }
+        }
+        SharedStore.clearHeartbeat()
+        SharedStore.publish(state: .idle)
+        lastCommandID = SharedStore.command?.id
+    }
+
+    // MARK: Entry points
+
+    func handle(url: URL) {
+        guard url.scheme == AppGroup.urlScheme, url.host == "session" else { return }
+        let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
+        let modeID = items.first { $0.name == "mode" }?.value
+        let shouldStart = items.first { $0.name == "start" }?.value == "1"
+        openedFromKeyboard = items.first { $0.name == "source" }?.value == "keyboard"
+        Task {
+            guard await ensureSession() else { return }
+            if shouldStart { startRecording(modeID: modeID) }
+        }
+    }
+
+    func handlePendingStart() {
+        guard let modeID = SharedStore.pendingStartModeID else { return }
+        SharedStore.pendingStartModeID = nil
+        Task {
+            guard await ensureSession() else { return }
+            startRecording(modeID: modeID)
+        }
+    }
+
+    func toggleRecording() {
+        if state == .recording {
+            stopRecording()
+        } else {
+            Task {
+                guard await ensureSession() else { return }
+                startRecording(modeID: nil)
+            }
+        }
+    }
+
+    // MARK: Session
+
+    @discardableResult
+    func ensureSession() async -> Bool {
+        if capture.isRunning {
+            isSessionActive = true
+            return true
+        }
+        guard await AVAudioApplication.requestRecordPermission() else {
+            fail("Microphone access is off. Enable it in Settings > Leap Whisper.")
+            return false
+        }
+        do {
+            try capture.startEngine()
+            isSessionActive = true
+            lastActivity = Date()
+            SharedStore.touchHeartbeat()
+            SharedStore.publish(state: .idle, message: nil)
+            update(state: .idle)
+            preloadModel()
+            return true
+        } catch {
+            fail("Couldn't start the microphone: \(error.localizedDescription)")
+            return false
+        }
+    }
+
+    func endSession(reason: String? = nil) {
+        if state == .recording { _ = capture.endRecording() }
+        capture.stopEngine()
+        isSessionActive = false
+        level = 0
+        SharedStore.clearHeartbeat()
+        update(state: .idle, message: reason)
+    }
+
+    private func checkIdleTimeout() {
+        guard isSessionActive, state == .idle else { return }
+        if Date().timeIntervalSince(lastActivity) > Double(settings.sessionTimeoutMinutes * 60) {
+            endSession(reason: "Session ended after \(settings.sessionTimeoutMinutes) idle minutes.")
+        }
+    }
+
+    private func preloadModel() {
+        guard settings.transcriptionBackend == .local, let url = ModelManager.shared.selectedModelURL else { return }
+        let useGPU = UIApplication.shared.applicationState != .background
+        Task.detached(priority: .utility) { try? await WhisperEngine.shared.load(modelAt: url, useGPU: useGPU) }
+    }
+
+    // MARK: Recording
+
+    private func handleCommand() {
+        guard let command = SharedStore.command, command.id != lastCommandID else { return }
+        lastCommandID = command.id
+        guard Date().timeIntervalSince(command.issuedAt) < 10 else { return }
+        switch command.kind {
+        case .start: startRecording(modeID: command.modeID)
+        case .stop: stopRecording()
+        case .cancel: cancelRecording()
+        }
+    }
+
+    func startRecording(modeID: String?) {
+        guard capture.isRunning, state != .recording, state != .transcribing else { return }
+        currentModeID = modeID ?? SharedStore.selectedModeID
+        lastActivity = Date()
+        capture.beginRecording()
+        update(state: .recording)
+    }
+
+    func stopRecording() {
+        guard state == .recording else { return }
+        let samples = capture.endRecording()
+        let mode = SharedStore.mode(withID: currentModeID)
+        update(state: .transcribing)
+        level = 0
+        Task { await process(samples: samples, mode: mode) }
+    }
+
+    func cancelRecording() {
+        guard state == .recording else { return }
+        _ = capture.endRecording()
+        level = 0
+        update(state: .idle)
+    }
+
+    private func process(samples: [Float], mode: DictationMode) async {
+        defer { lastActivity = Date() }
+        guard samples.count > Int(AudioCapture.sampleRate * 0.3) else {
+            update(state: .idle, message: "Didn't catch that — hold on a bit longer.")
+            return
+        }
+        do {
+            let (raw, source) = try await transcribe(samples: samples)
+            let cleaned = TextOptimizer.cleanTranscript(raw)
+            guard !cleaned.isEmpty else {
+                update(state: .idle, message: "No speech detected.")
+                return
+            }
+            var output = cleaned
+            var note: String?
+            do {
+                output = try await TextOptimizer.optimize(cleaned, mode: mode, settings: settings)
+                if output.isEmpty { output = cleaned }
+            } catch {
+                note = "\(mode.name) mode skipped: \(error.localizedDescription)"
+            }
+            lastTranscript = output
+            lastSource = source
+            SharedStore.publish(transcript: TranscriptPayload(text: output, modeID: mode.id))
+            update(state: .idle, message: note)
+        } catch {
+            fail(error.localizedDescription)
+        }
+    }
+
+    private func transcribe(samples: [Float]) async throws -> (String, String) {
+        let language = settings.language
+        let prompt = settings.vocabulary.isEmpty ? nil : settings.vocabulary
+        let groqKey = settings.groqAPIKey
+
+        if settings.transcriptionBackend == .groq {
+            guard let groqKey else { throw GroqError.missingAPIKey }
+            return (try await transcribeWithGroq(samples, key: groqKey, language: language, prompt: prompt), "Groq")
+        }
+
+        let canFallBack = settings.cloudFallbackEnabled && groqKey != nil
+        guard let modelURL = ModelManager.shared.selectedModelURL else {
+            if canFallBack, let groqKey {
+                return (try await transcribeWithGroq(samples, key: groqKey, language: language, prompt: prompt), "Groq (no local model)")
+            }
+            throw WhisperEngineError.modelLoadFailed("— download one in the Models tab")
+        }
+
+        let useGPU = UIApplication.shared.applicationState != .background
+        do {
+            let result = try await Task.detached(priority: .userInitiated) { () throws -> WhisperResult in
+                try await WhisperEngine.shared.load(modelAt: modelURL, useGPU: useGPU)
+                return try await WhisperEngine.shared.transcribe(samples: samples, language: language, prompt: prompt)
+            }.value
+
+            let tooUncertain = Double(result.confidence) < settings.fallbackConfidenceThreshold
+            if canFallBack, let groqKey, tooUncertain, result.noSpeechProbability < 0.8 {
+                if let cloud = try? await transcribeWithGroq(samples, key: groqKey, language: language, prompt: prompt), !cloud.isEmpty {
+                    return (cloud, String(format: "Groq (local confidence %.0f%%)", result.confidence * 100))
+                }
+            }
+            return (result.text, String(format: "On-device · %.0f%% confidence", result.confidence * 100))
+        } catch {
+            if canFallBack, let groqKey {
+                return (try await transcribeWithGroq(samples, key: groqKey, language: language, prompt: prompt), "Groq (local failed)")
+            }
+            throw error
+        }
+    }
+
+    private func transcribeWithGroq(_ samples: [Float], key: String, language: String, prompt: String?) async throws -> String {
+        let wav = WAVEncoder.encode(samples: samples, sampleRate: Int(AudioCapture.sampleRate))
+        return try await GroqClient(apiKey: key).transcribe(wav: wav, model: settings.groqTranscriptionModel, language: language, prompt: prompt)
+    }
+
+    // MARK: State
+
+    private func update(state newState: DictationState, message: String? = nil) {
+        state = newState
+        statusMessage = message
+        SharedStore.publish(state: newState, message: message)
+    }
+
+    private func fail(_ message: String) {
+        update(state: .error, message: message)
+    }
+}

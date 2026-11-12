@@ -1,0 +1,48 @@
+name: iOS
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      testflight:
+        description: Upload to TestFlight
+        type: boolean
+        default: false
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Build (simulator, unsigned)
+        run: |
+          xcodegen generate
+          xcodebuild build \
+            -project LeapWhisper.xcodeproj \
+            -scheme LeapWhisper \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO
+
+  testflight:
+    if: github.event_name == 'workflow_dispatch' && inputs.testflight
+    needs: build
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Write App Store Connect key
+        run: echo "${{ secrets.ASC_KEY_P8 }}" > "$RUNNER_TEMP/AuthKey.p8"
+      - name: Archive and upload
+        env:
+          LEAP_TEAM_ID: ${{ secrets.LEAP_TEAM_ID }}
+          LEAP_BUNDLE_PREFIX: ${{ secrets.LEAP_BUNDLE_PREFIX }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_PATH: ${{ runner.temp }}/AuthKey.p8
+          BUILD_NUMBER: ${{ github.run_number }}
+        run: ./scripts/testflight.sh

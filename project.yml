@@ -1,0 +1,126 @@
+name: LeapWhisper
+options:
+  bundleIdPrefix: com.leapwhisper
+  deploymentTarget:
+    iOS: "18.0"
+  createIntermediateGroups: true
+  generateEmptyDirectories: true
+
+configFiles:
+  Debug: Config/Base.xcconfig
+  Release: Config/Base.xcconfig
+
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    TARGETED_DEVICE_FAMILY: "1,2"
+    CODE_SIGN_STYLE: Automatic
+    DEVELOPMENT_TEAM: $(LEAP_TEAM_ID)
+    ENABLE_USER_SCRIPT_SANDBOXING: "YES"
+
+packages:
+  WhisperFramework:
+    path: Packages/WhisperFramework
+
+targets:
+  LeapWhisper:
+    type: application
+    platform: iOS
+    sources:
+      - App
+      - Shared
+    dependencies:
+      - target: LeapKeyboard
+      - target: LeapWidgets
+      - package: WhisperFramework
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(LEAP_BUNDLE_PREFIX).app
+        PRODUCT_NAME: LeapWhisper
+        CODE_SIGN_ENTITLEMENTS: App/LeapWhisper.entitlements
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.productivity
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleDisplayName: Leap Whisper
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LeapAppGroup: $(LEAP_APP_GROUP)
+        NSMicrophoneUsageDescription: Leap Whisper records your voice so it can be transcribed into text.
+        UIBackgroundModes: [audio]
+        UILaunchScreen: {}
+        ITSAppUsesNonExemptEncryption: false
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: true
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        CFBundleURLTypes:
+          - CFBundleURLName: $(PRODUCT_BUNDLE_IDENTIFIER)
+            CFBundleURLSchemes: [leapwhisper]
+
+  LeapKeyboard:
+    type: app-extension
+    platform: iOS
+    sources:
+      - Keyboard
+      - path: Shared
+        excludes:
+          - "Intents/**"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(LEAP_BUNDLE_PREFIX).app.keyboard
+        PRODUCT_NAME: LeapKeyboard
+        CODE_SIGN_ENTITLEMENTS: Keyboard/LeapKeyboard.entitlements
+    info:
+      path: Keyboard/Info.plist
+      properties:
+        CFBundleDisplayName: Leap Whisper
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LeapAppGroup: $(LEAP_APP_GROUP)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.keyboard-service
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).KeyboardViewController
+          NSExtensionAttributes:
+            IsASCIICapable: false
+            PrefersRightToLeft: false
+            PrimaryLanguage: en-US
+            RequestsOpenAccess: true
+
+  LeapWidgets:
+    type: app-extension
+    platform: iOS
+    sources:
+      - Widgets
+      - Shared
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(LEAP_BUNDLE_PREFIX).app.widgets
+        PRODUCT_NAME: LeapWidgets
+        CODE_SIGN_ENTITLEMENTS: Widgets/LeapWidgets.entitlements
+    info:
+      path: Widgets/Info.plist
+      properties:
+        CFBundleDisplayName: Leap Whisper
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LeapAppGroup: $(LEAP_APP_GROUP)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+
+schemes:
+  LeapWhisper:
+    build:
+      targets:
+        LeapWhisper: all
+    run:
+      config: Debug
+    archive:
+      config: Release
