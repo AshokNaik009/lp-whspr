@@ -45,6 +45,19 @@ The Groq key is entered in the app's Settings and stored in the iOS Keychain. It
 binary. For a public App Store release, put a small proxy (e.g. a Cloudflare Worker) in front of Groq instead of
 per-user keys.
 
+## App
+
+- **Dictate**: mic button, live level, mode picker, last transcript.
+- **History**: every dictation from the app or keyboard, grouped by day, searchable. Swipe to copy or delete. Detail shows the
+  original transcript, engine, local confidence and timing. Stored on-device only.
+- **Stats**: words dictated, time saved versus typing at 40 WPM, speaking speed, streak, on-device versus Groq share, a 7-day chart
+  and words by mode.
+- **Models**: download, import or delete whisper.cpp models, and pick the active one.
+- **Calibration** (Models tab or Settings): read a reference sentence once. Every installed model, plus Groq if a key is saved,
+  transcribes the same recording. Results show accuracy (1 − word error rate), latency and confidence. You can apply the recommended
+  engine and a suggested fallback threshold with one tap.
+- **Settings**: on-device or Groq (online) engine, language, vocabulary, cloud fallback and threshold, optimizer, modes, Groq key.
+
 ## Build
 
 Requires macOS, Xcode 16+ (Xcode 26 to enable the Apple Intelligence optimizer) and XcodeGen.
@@ -55,6 +68,21 @@ cp Config/Local.xcconfig.example Config/Local.xcconfig   # set your Team ID and 
 xcodegen generate
 open LeapWhisper.xcodeproj
 ```
+
+### Run on your iPhone over USB
+
+1. Connect the iPhone with a cable, then tap **Trust** on the phone.
+2. Turn on Developer Mode on the phone (Settings > Privacy & Security > Developer Mode), then restart the phone.
+3. In Xcode, under Settings > Accounts, add your Apple ID.
+4. For each of the three targets, go to Signing & Capabilities and pick your team. Make the bundle prefix unique,
+   e.g. `com.<yourname>.leapwhisper`, in `Config/Local.xcconfig`.
+5. Select the iPhone as the run destination and press Run (⌘R). To debug the keyboard, choose the `LeapKeyboard` scheme,
+   then pick any app with a text field as the host.
+6. On the phone, add the keyboard: Settings > General > Keyboard > Keyboards > Add New Keyboard > Leap Whisper.
+   Then turn on **Allow Full Access**, which the keyboard needs for the App Group.
+
+Free Apple IDs work for this, but the app expires after 7 days. If Xcode refuses the App Groups capability on a personal team,
+you'll need a paid Developer Program team.
 
 Bundle IDs: `$(LEAP_BUNDLE_PREFIX).app`, `.app.keyboard` and `.app.widgets`. App Group: `group.$(LEAP_BUNDLE_PREFIX).shared`.
 

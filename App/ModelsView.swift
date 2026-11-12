@@ -14,6 +14,12 @@ struct ModelsView: View {
                     Section { Text(error).foregroundStyle(.red).font(.footnote) }
                 }
 
+                Section {
+                    NavigationLink { CalibrationView() } label: {
+                        Label("Calibrate: compare models on your voice", systemImage: "slider.horizontal.3")
+                    }
+                }
+
                 Section("Installed") {
                     if models.installed.isEmpty {
                         Text("No models yet. Download one below or import a ggml .bin file.")

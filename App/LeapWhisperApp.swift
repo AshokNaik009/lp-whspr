@@ -38,10 +38,12 @@ struct RootView: View {
         TabView {
             HomeView()
                 .tabItem { Label("Dictate", systemImage: "waveform") }
+            HistoryView()
+                .tabItem { Label("History", systemImage: "clock") }
+            StatsView()
+                .tabItem { Label("Stats", systemImage: "chart.bar") }
             ModelsView()
                 .tabItem { Label("Models", systemImage: "cpu") }
-            ModesView()
-                .tabItem { Label("Modes", systemImage: "sparkles") }
             SettingsView()
                 .tabItem { Label("Settings", systemImage: "gearshape") }
         }

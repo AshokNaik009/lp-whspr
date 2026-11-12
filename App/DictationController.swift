@@ -155,7 +155,7 @@ final class DictationController: ObservableObject {
     }
 
     func stopRecording() {
-        guard state == .recording else { return }
+        guard state == .recording, !isCalibrating else { return }
         let samples = capture.endRecording()
         let mode = SharedStore.mode(withID: currentModeID)
         update(state: .transcribing)
@@ -164,7 +164,7 @@ final class DictationController: ObservableObject {
     }
 
     func cancelRecording() {
-        guard state == .recording else { return }
+        guard state == .recording, !isCalibrating else { return }
         _ = capture.endRecording()
         level = 0
         update(state: .idle)
@@ -176,9 +176,10 @@ final class DictationController: ObservableObject {
             update(state: .idle, message: "Didn't catch that — hold on a bit longer.")
             return
         }
+        let started = Date()
         do {
-            let (raw, source) = try await transcribe(samples: samples)
-            let cleaned = TextOptimizer.cleanTranscript(raw)
+            let outcome = try await transcribe(samples: samples)
+            let cleaned = TextOptimizer.cleanTranscript(outcome.text)
             guard !cleaned.isEmpty else {
                 update(state: .idle, message: "No speech detected.")
                 return
@@ -192,29 +193,50 @@ final class DictationController: ObservableObject {
                 note = "\(mode.name) mode skipped: \(error.localizedDescription)"
             }
             lastTranscript = output
-            lastSource = source
+            lastSource = outcome.source
             SharedStore.publish(transcript: TranscriptPayload(text: output, modeID: mode.id))
+            HistoryStore.shared.add(DictationRecord(
+                rawText: cleaned,
+                finalText: output,
+                modeID: mode.id,
+                modeName: mode.name,
+                engine: outcome.source,
+                usedCloud: outcome.usedCloud,
+                confidence: outcome.confidence.map(Double.init),
+                audioSeconds: Double(samples.count) / AudioCapture.sampleRate,
+                processingSeconds: Date().timeIntervalSince(started)
+            ))
             update(state: .idle, message: note)
         } catch {
             fail(error.localizedDescription)
         }
     }
 
-    private func transcribe(samples: [Float]) async throws -> (String, String) {
+    private struct TranscriptionOutcome {
+        var text: String
+        var source: String
+        var usedCloud: Bool
+        var confidence: Float?
+    }
+
+    private func transcribe(samples: [Float]) async throws -> TranscriptionOutcome {
         let language = settings.language
         let prompt = settings.vocabulary.isEmpty ? nil : settings.vocabulary
         let groqKey = settings.groqAPIKey
 
-        if settings.transcriptionBackend == .groq {
+        func cloud(_ reason: String, confidence: Float? = nil) async throws -> TranscriptionOutcome {
             guard let groqKey else { throw GroqError.missingAPIKey }
-            return (try await transcribeWithGroq(samples, key: groqKey, language: language, prompt: prompt), "Groq")
+            let text = try await transcribeWithGroq(samples, key: groqKey, language: language, prompt: prompt)
+            return TranscriptionOutcome(text: text, source: reason, usedCloud: true, confidence: confidence)
+        }
+
+        if settings.transcriptionBackend == .groq {
+            return try await cloud("Groq")
         }
 
         let canFallBack = settings.cloudFallbackEnabled && groqKey != nil
         guard let modelURL = ModelManager.shared.selectedModelURL else {
-            if canFallBack, let groqKey {
-                return (try await transcribeWithGroq(samples, key: groqKey, language: language, prompt: prompt), "Groq (no local model)")
-            }
+            if canFallBack { return try await cloud("Groq (no local model)") }
             throw WhisperEngineError.modelLoadFailed("— download one in the Models tab")
         }
 
@@ -226,21 +248,42 @@ final class DictationController: ObservableObject {
             }.value
 
             let tooUncertain = Double(result.confidence) < settings.fallbackConfidenceThreshold
-            if canFallBack, let groqKey, tooUncertain, result.noSpeechProbability < 0.8 {
-                if let cloud = try? await transcribeWithGroq(samples, key: groqKey, language: language, prompt: prompt), !cloud.isEmpty {
-                    return (cloud, String(format: "Groq (local confidence %.0f%%)", result.confidence * 100))
-                }
+            if canFallBack, tooUncertain, result.noSpeechProbability < 0.8,
+               let outcome = try? await cloud(String(format: "Groq (local confidence %.0f%%)", result.confidence * 100), confidence: result.confidence),
+               !outcome.text.isEmpty {
+                return outcome
             }
-            return (result.text, String(format: "On-device · %.0f%% confidence", result.confidence * 100))
+            let source = String(format: "On-device · %@ · %.0f%%", modelURL.deletingPathExtension().lastPathComponent, result.confidence * 100)
+            return TranscriptionOutcome(text: result.text, source: source, usedCloud: false, confidence: result.confidence)
         } catch {
-            if canFallBack, let groqKey {
-                return (try await transcribeWithGroq(samples, key: groqKey, language: language, prompt: prompt), "Groq (local failed)")
-            }
+            if canFallBack { return try await cloud("Groq (local failed)") }
             throw error
         }
     }
 
-    private func transcribeWithGroq(_ samples: [Float], key: String, language: String, prompt: String?) async throws -> String {
+    // MARK: Calibration
+
+    @Published private(set) var isCalibrating = false
+
+    func beginCalibrationCapture() async -> Bool {
+        guard state == .idle || state == .error, await ensureSession() else { return false }
+        isCalibrating = true
+        lastActivity = Date()
+        capture.beginRecording()
+        update(state: .recording)
+        return true
+    }
+
+    func endCalibrationCapture() -> [Float] {
+        guard isCalibrating else { return [] }
+        isCalibrating = false
+        level = 0
+        let samples = capture.endRecording()
+        update(state: .idle)
+        return samples
+    }
+
+    func transcribeWithGroq(_ samples: [Float], key: String, language: String, prompt: String?) async throws -> String {
         let wav = WAVEncoder.encode(samples: samples, sampleRate: Int(AudioCapture.sampleRate))
         return try await GroqClient(apiKey: key).transcribe(wav: wav, model: settings.groqTranscriptionModel, language: language, prompt: prompt)
     }

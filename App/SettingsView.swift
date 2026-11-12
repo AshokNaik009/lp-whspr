@@ -22,6 +22,7 @@ struct SettingsView: View {
                         ForEach(languages, id: \.0) { Text($0.1).tag($0.0) }
                     }
                     TextField("Custom vocabulary (names, jargon)", text: $settings.vocabulary, axis: .vertical)
+                    NavigationLink { CalibrationView() } label: { Label("Calibrate models", systemImage: "slider.horizontal.3") }
                 }
 
                 Section {
@@ -39,6 +40,7 @@ struct SettingsView: View {
                 }
 
                 Section("Optimization modes") {
+                    NavigationLink { ModesView() } label: { Label("Edit modes", systemImage: "sparkles") }
                     Picker("Rewrite with", selection: $settings.optimizerBackend) {
                         ForEach(OptimizerBackend.allCases) { Text($0.title).tag($0) }
                     }
