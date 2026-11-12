@@ -32,5 +32,12 @@ sense.
 
 | Requirement | Files |
 | --- | --- |
-| FR-006-1 – 6 | `App/CalibrationView.swift` (`CalibrationRunner`) |
+| FR-006-1 – 6 | `App/CalibrationView.swift` (`CalibrationRunner`), `Shared/Core/WordErrorRate.swift`, `Shared/Core/FallbackPolicy.swift` |
 | FR-006-7 | `App/DictationController.swift` (`beginCalibrationCapture` / `endCalibrationCapture`) |
+
+## Verification
+
+| Criterion | Device / OS | Result | Date |
+| --- | --- | --- | --- |
+| FR-006-3 WER, FR-006-6 threshold | `swift test` (WordErrorRateTests, FallbackPolicyTests) | Pass | 2026-11-12 |
+| Device acceptance criteria | iPhone | Pending | |

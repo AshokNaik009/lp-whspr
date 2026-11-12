@@ -55,4 +55,7 @@ extension uses the responder chain, because `UIApplication.shared` isn't availab
 
 ## Verification
 
-Pending the first device build.
+| Criterion | Device / OS | Result | Date |
+| --- | --- | --- | --- |
+| AC-001-3 | `swift test` (TranscriptCleanerTests) | Pass | 2026-11-12 |
+| Device acceptance criteria | iPhone | Pending | |

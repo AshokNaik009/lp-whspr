@@ -34,4 +34,11 @@ shows it.
 | --- | --- |
 | FR-005-1, 5 | `App/HistoryStore.swift`, `App/DictationController.swift` (`process`) |
 | FR-005-2 – 4 | `App/HistoryView.swift` |
-| FR-005-6 | `App/HistoryStore.swift` (`stats`), `App/StatsView.swift` |
+| FR-005-6 | `Shared/Core/DictationRecord.swift` (`DictationStats(records:)`), `App/StatsView.swift` |
+
+## Verification
+
+| Criterion | Device / OS | Result | Date |
+| --- | --- | --- | --- |
+| AC-005-3, AC-005-4 | `swift test` (DictationStatsTests) | Pass | 2026-11-12 |
+| Device acceptance criteria | iPhone | Pending | |

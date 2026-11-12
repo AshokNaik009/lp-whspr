@@ -40,7 +40,7 @@ no-speech guard stops silence from being sent to the cloud. Public App Store bui
 | Requirement | Files |
 | --- | --- |
 | FR-003-1, 7 | `App/Settings.swift`, `App/SettingsView.swift` |
-| FR-003-2 – 4, 6 | `App/DictationController.swift` (`transcribe(samples:)`) |
+| FR-003-2 – 4, 6 | `App/DictationController.swift` (`transcribe(samples:)`), `Shared/Core/FallbackPolicy.swift` |
 | FR-003-5 | `App/Keychain.swift` |
 | Transport | `App/GroqClient.swift`, `App/WAVEncoder.swift` |
 
@@ -48,4 +48,5 @@ no-speech guard stops silence from being sent to the cloud. Public App Store bui
 
 | Criterion | Device / OS | Result | Date |
 | --- | --- | --- | --- |
+| AC-003-1, AC-003-2, AC-003-3 (decision logic) | `swift test` (FallbackPolicyTests) | Pass | 2026-11-12 |
 | Groq transcription and chat endpoints respond (curl, same request shape) | Linux VM | Pass | 2026-11-12 |

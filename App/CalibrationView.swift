@@ -83,7 +83,7 @@ final class CalibrationRunner: ObservableObject {
                     results[index].text = try await DictationController.shared.transcribeWithGroq(audio, key: key, language: language, prompt: nil)
                 }
                 results[index].seconds = Date().timeIntervalSince(started)
-                results[index].wordErrorRate = Self.wordErrorRate(reference: reference, hypothesis: results[index].text)
+                results[index].wordErrorRate = WordErrorRate.compute(reference: reference, hypothesis: results[index].text)
             } catch {
                 results[index].error = error.localizedDescription
             }
@@ -101,12 +101,10 @@ final class CalibrationRunner: ObservableObject {
 
     /// Lowest local confidence among results that were still accurate, used to suggest a fallback threshold.
     var suggestedThreshold: Double? {
-        let confident = results.compactMap { r -> Float? in
-            guard let accuracy = r.accuracy, accuracy >= 0.9 else { return nil }
-            return r.confidence
-        }
-        guard let floor = confident.min() else { return nil }
-        return min(0.9, max(0.3, Double(floor) - 0.1))
+        FallbackPolicy.suggestedThreshold(results: results.compactMap { r in
+            guard let accuracy = r.accuracy, let confidence = r.confidence else { return nil }
+            return (accuracy, confidence)
+        })
     }
 
     func apply(_ result: CalibrationResult) {
@@ -118,26 +116,6 @@ final class CalibrationRunner: ObservableObject {
         case .groq:
             settings.transcriptionBackend = .groq
         }
-    }
-
-    static func wordErrorRate(reference: String, hypothesis: String) -> Double {
-        func words(_ s: String) -> [String] {
-            s.lowercased()
-                .components(separatedBy: CharacterSet.alphanumerics.inverted)
-                .filter { !$0.isEmpty }
-        }
-        let ref = words(reference), hyp = words(hypothesis)
-        guard !ref.isEmpty else { return hyp.isEmpty ? 0 : 1 }
-        var previous = Array(0...hyp.count)
-        for i in 1...ref.count {
-            var current = [i] + Array(repeating: 0, count: hyp.count)
-            for j in stride(from: 1, through: hyp.count, by: 1) {
-                let cost = ref[i - 1] == hyp[j - 1] ? 0 : 1
-                current[j] = min(previous[j] + 1, current[j - 1] + 1, previous[j - 1] + cost)
-            }
-            previous = current
-        }
-        return Double(previous[hyp.count]) / Double(ref.count)
     }
 }
 

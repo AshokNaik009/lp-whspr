@@ -12,6 +12,16 @@ on:
         default: false
 
 jobs:
+  core-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: swift-actions/setup-swift@v2
+        with:
+          swift-version: "6.1"
+      - name: Unit tests (Shared/Core)
+        run: swift test
+
   build:
     runs-on: macos-15
     steps:
@@ -26,6 +36,8 @@ jobs:
             -scheme LeapWhisper \
             -destination 'generic/platform=iOS Simulator' \
             CODE_SIGNING_ALLOWED=NO
+      - name: Unit tests (Shared/Core, macOS)
+        run: swift test
 
   testflight:
     if: github.event_name == 'workflow_dispatch' && inputs.testflight

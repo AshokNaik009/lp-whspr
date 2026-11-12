@@ -247,8 +247,8 @@ final class DictationController: ObservableObject {
                 return try await WhisperEngine.shared.transcribe(samples: samples, language: language, prompt: prompt)
             }.value
 
-            let tooUncertain = Double(result.confidence) < settings.fallbackConfidenceThreshold
-            if canFallBack, tooUncertain, result.noSpeechProbability < 0.8,
+            if FallbackPolicy.shouldUseCloud(confidence: result.confidence, noSpeechProbability: result.noSpeechProbability,
+                                             threshold: settings.fallbackConfidenceThreshold, cloudAvailable: canFallBack),
                let outcome = try? await cloud(String(format: "Groq (local confidence %.0f%%)", result.confidence * 100), confidence: result.confidence),
                !outcome.text.isEmpty {
                 return outcome

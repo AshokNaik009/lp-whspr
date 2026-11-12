@@ -99,12 +99,7 @@ final class KeyboardModel: ObservableObject {
 
     private func insert(_ text: String) {
         guard let proxy = controller?.textDocumentProxy else { return }
-        var output = text
-        if let before = proxy.documentContextBeforeInput, let last = before.last, !last.isWhitespace,
-           let first = output.first, !first.isPunctuation {
-            output = " " + output
-        }
-        proxy.insertText(output)
+        proxy.insertText(TranscriptCleaner.spaced(text, after: proxy.documentContextBeforeInput))
     }
 
     // MARK: Basic keys

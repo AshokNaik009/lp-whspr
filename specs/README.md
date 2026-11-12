@@ -40,5 +40,13 @@ one of the two, and the PR must say which.
 | [007](features/007-widgets-and-shortcuts.md) | Widgets, Control Center and shortcuts | Implemented |
 | [008](features/008-distribution.md) | Device debugging, TestFlight and App Store distribution | In progress |
 
+## Automated checks
+
+- `swift test` runs the unit tests in `Tests/LeapCoreTests` against `Shared/Core`, the logic that doesn't need a device:
+  transcript cleanup and spacing, word error rate, the fallback decision, the suggested threshold, stats and the WAV encoder.
+  Test names cite the acceptance criteria they cover (for example `// AC-005-3`).
+- The `iOS` GitHub workflow compiles the app, keyboard and widgets for the iOS Simulator on every push, and runs the unit tests on
+  Linux and macOS.
+
 Status values: `Draft` → `Approved` → `Implemented` → `Verified`, or `In progress` while partly done. No spec is `Verified` yet
-because the first Xcode build and on-device run haven't happened.
+because nothing has been run on a device yet. CI compiles every push.

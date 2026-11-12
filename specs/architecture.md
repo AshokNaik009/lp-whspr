@@ -62,6 +62,8 @@ flowchart LR
 
 ## Key files
 
+- Pure logic, unit-tested with `swift test`: `Shared/Core/` (`Package.swift` at the repo root, tests in `Tests/LeapCoreTests`)
+
 - Orchestration: `App/DictationController.swift`
 - Audio: `App/AudioCapture.swift`, `App/WAVEncoder.swift`
 - Inference: `App/WhisperEngine.swift`, `Packages/WhisperFramework` (whisper.cpp v1.9.2 XCFramework)

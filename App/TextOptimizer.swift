@@ -14,11 +14,7 @@ enum TextOptimizerError: LocalizedError {
 enum TextOptimizer {
     private static let guardrail = "You receive a raw speech-to-text transcript. Apply the instructions and reply with the rewritten text only — no preamble, no quotes, no explanations."
 
-    static func cleanTranscript(_ text: String) -> String {
-        var result = text.replacingOccurrences(of: #"\[[^\]]*\]|\([^)]*(music|silence|blank|inaudible)[^)]*\)"#, with: "", options: [.regularExpression, .caseInsensitive])
-        result = result.replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
-        return result.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
+    static func cleanTranscript(_ text: String) -> String { TranscriptCleaner.clean(text) }
 
     static func optimize(_ text: String, mode: DictationMode, settings: AppSettings) async throws -> String {
         guard !mode.isVerbatim, !text.isEmpty else { return text }
