@@ -312,14 +312,26 @@ struct HomeView: View {
 
     // MARK: Transcript
 
+    /// "On-device · ggml-small-q5_1 · 70%" → "Small · 70%"; any Groq source → "Groq".
+    static func shortSource(_ source: String) -> String {
+        if source.hasPrefix("Groq") { return "Groq" }
+        let parts = source.components(separatedBy: " · ")
+        guard parts.count == 3 else { return source }
+        var model = parts[1]
+        if model.hasPrefix("ggml-") { model.removeFirst(5) }
+        if let range = model.range(of: #"-q\d+_\d+$"#, options: .regularExpression) { model.removeSubrange(range) }
+        return "\(model.prefix(1).uppercased())\(model.dropFirst()) · \(parts[2])"
+    }
+
     private var transcriptCard: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 sectionTitle("Last transcript")
                 Spacer()
                 if !controller.lastSource.isEmpty {
-                    Text(controller.lastSource)
+                    Text(Self.shortSource(controller.lastSource))
                         .font(.jakarta(.caption2, .medium))
+                        .lineLimit(1)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
                         .glass(in: Capsule())
