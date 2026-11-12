@@ -12,7 +12,7 @@ offer the same modes.
 
 | ID | Requirement |
 | --- | --- |
-| FR-004-1 | Built-in modes: **Raw** (verbatim), **Clean**, **Message**, **Email**, **Notes** (bullets) and **AI Prompt**. |
+| FR-004-1 | Built-in modes: **Raw** (verbatim), **Clean**, **Message**, **Email**, **Notes** (bullets), **AI Prompt** and **To Arabic** (translates any spoken language to Arabic). New built-in modes are appended for existing users once; deleted ones stay deleted. |
 | FR-004-2 | Users can add, edit (name, icon, instructions), reorder, delete and reset modes. Modes are shared with the keyboard through the App Group. |
 | FR-004-3 | A mode with empty instructions inserts the transcript without calling an LLM. |
 | FR-004-4 | Every transcript is first cleaned locally: `[BLANK_AUDIO]`, `(music)` and similar annotations are removed and whitespace collapsed. |

@@ -276,6 +276,7 @@ struct HomeView: View {
         if settings.optimizerBackend == .off {
             return "Turn on an optimizer in Settings to apply \(mode.name) rewriting."
         }
+        if mode.id == "arabic" { return "Speak in any language; Arabic text is inserted." }
         return nil
     }
 

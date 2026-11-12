@@ -4,7 +4,7 @@ Voice dictation for iPhone and iPad: a SwiftUI app plus a custom keyboard with a
 recording on and off and types the transcript into any app. Transcription runs on-device with
 [whisper.cpp](https://github.com/ggml-org/whisper.cpp) (Metal-accelerated). Groq Cloud is a fallback
 for low-confidence results, or it can be the main engine. Optimization modes (Clean, Message, Email,
-Notes, AI Prompt, custom) rewrite the transcript with Apple Intelligence (on-device) or a Groq LLM.
+Notes, AI Prompt, To Arabic, custom) rewrite the transcript with Apple Intelligence (on-device) or a Groq LLM.
 
 ## Architecture
 

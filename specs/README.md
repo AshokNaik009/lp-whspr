@@ -34,7 +34,7 @@ one of the two, and the PR must say which.
 | [001](features/001-keyboard-dictation.md) | Keyboard dictation toggle and app handoff | Implemented |
 | [002](features/002-on-device-transcription.md) | On-device transcription (whisper.cpp) and model management | Implemented |
 | [003](features/003-cloud-fallback.md) | Confidence-based Groq fallback and online mode | Implemented |
-| [004](features/004-optimization-modes.md) | Optimization modes (Raw, Clean, Message, Email, Notes, AI Prompt, custom) | Implemented |
+| [004](features/004-optimization-modes.md) | Optimization modes (Raw, Clean, Message, Email, Notes, AI Prompt, To Arabic, custom) | Implemented |
 | [005](features/005-history-and-stats.md) | History and stats | Implemented |
 | [006](features/006-model-calibration.md) | Model calibration | Implemented |
 | [007](features/007-widgets-and-shortcuts.md) | Widgets, Control Center and shortcuts | Implemented |

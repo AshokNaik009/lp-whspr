@@ -40,6 +40,7 @@ enum SharedStore {
         static let pendingStart = "session.pendingStart"
         static let modes = "modes"
         static let selectedModeID = "modes.selected"
+        static let knownBuiltInModeIDs = "modes.knownBuiltIns"
         static let keyboardConnected = "keyboard.connected"
         static let livePartial = "session.livePartial"
     }
@@ -122,8 +123,25 @@ enum SharedStore {
     }
 
     static var modes: [DictationMode] {
-        get { decode([DictationMode].self, key: Key.modes) ?? DictationMode.defaults }
-        set { encode(newValue, key: Key.modes) }
+        get {
+            guard let saved = decode([DictationMode].self, key: Key.modes) else { return DictationMode.defaults }
+            return addingNewBuiltIns(to: saved)
+        }
+        set {
+            encode(newValue, key: Key.modes)
+            defaults.set(DictationMode.defaults.map(\.id), forKey: Key.knownBuiltInModeIDs)
+        }
+    }
+
+    /// Built-in modes shipped after the user customised their list are appended once; ones they deleted stay deleted.
+    private static func addingNewBuiltIns(to saved: [DictationMode]) -> [DictationMode] {
+        let known = Set(defaults.stringArray(forKey: Key.knownBuiltInModeIDs) ?? ["raw", "clean", "message", "email", "notes", "prompt"])
+        let present = Set(saved.map(\.id))
+        let added = DictationMode.defaults.filter { !known.contains($0.id) && !present.contains($0.id) }
+        guard !added.isEmpty else { return saved }
+        let merged = saved + added
+        modes = merged
+        return merged
     }
 
     static var selectedModeID: String {

@@ -34,5 +34,9 @@ struct DictationMode: Codable, Identifiable, Hashable {
             id: "prompt", name: "AI Prompt", symbol: "wand.and.stars",
             instructions: "Rewrite this dictated text as a clear, well-structured prompt for an AI assistant. State the goal, relevant context and any constraints explicitly. Keep the original intent and language. Do not answer the prompt."
         ),
+        DictationMode(
+            id: "arabic", name: "To Arabic", symbol: "translate",
+            instructions: "Translate this dictated text into natural, fluent Modern Standard Arabic. Remove filler words and false starts, keep the meaning, names, numbers and tone. Keep product names such as Leap Whisper in their original form. Reply with the Arabic translation only."
+        ),
     ]
 }
