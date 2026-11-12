@@ -10,6 +10,7 @@ final class KeyboardModel: ObservableObject {
     @Published var selectedModeID = SharedStore.selectedModeID
     @Published var showsGlobeKey = true
     @Published var hint: String?
+    @Published var liveText: String?
 
     private weak var controller: KeyboardViewController?
     private var tokens: [UUID] = []
@@ -33,6 +34,7 @@ final class KeyboardModel: ObservableObject {
         guard tokens.isEmpty else { return }
         tokens.append(DarwinNotifier.shared.observe(.state) { [weak self] in self?.refresh() })
         tokens.append(DarwinNotifier.shared.observe(.transcript) { [weak self] in self?.insertLatestTranscript() })
+        tokens.append(DarwinNotifier.shared.observe(.live) { [weak self] in self?.refresh() })
         pollTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.refresh() }
         }
@@ -49,6 +51,7 @@ final class KeyboardModel: ObservableObject {
         sessionAlive = SharedStore.isSessionAlive
         state = sessionAlive ? SharedStore.state : .idle
         statusMessage = SharedStore.statusMessage
+        liveText = state == .recording || state == .transcribing ? SharedStore.livePartial : nil
         modes = SharedStore.modes
         selectedModeID = SharedStore.selectedModeID
     }

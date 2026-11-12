@@ -60,7 +60,8 @@ actor WhisperEngine {
         loadedPath = nil
     }
 
-    func transcribe(samples input: [Float], language: String, prompt: String?) throws -> WhisperResult {
+    /// `fast` is for live previews: greedy decoding without temperature retries.
+    func transcribe(samples input: [Float], language: String, prompt: String?, fast: Bool = false) throws -> WhisperResult {
         guard let context else { throw WhisperEngineError.transcriptionFailed }
 
         var samples = input
@@ -70,8 +71,12 @@ actor WhisperEngine {
         }
 
         // Beam search is noticeably more accurate than greedy decoding; keep the beam narrower on CPU (background) runs.
-        var params = whisper_full_default_params(WHISPER_SAMPLING_BEAM_SEARCH)
-        params.beam_search.beam_size = loadedWithGPU ? 5 : 3
+        var params = whisper_full_default_params(fast ? WHISPER_SAMPLING_GREEDY : WHISPER_SAMPLING_BEAM_SEARCH)
+        if fast {
+            params.temperature_inc = 0
+        } else {
+            params.beam_search.beam_size = loadedWithGPU ? 5 : 3
+        }
         params.print_realtime = false
         params.print_progress = false
         params.print_timestamps = false

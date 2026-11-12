@@ -16,6 +16,9 @@ final class DictationController: ObservableObject {
     @Published private(set) var lastSource: String = ""
     @Published var openedFromKeyboard = false
     @Published private(set) var returnedToHost = false
+    /// Words recognised so far while recording (live preview).
+    @Published private(set) var liveText = ""
+    private var liveTask: Task<Void, Never>?
 
     private let capture = AudioCapture()
     private let settings = AppSettings.shared
@@ -160,11 +163,44 @@ final class DictationController: ObservableObject {
         lastActivity = Date()
         capture.beginRecording()
         update(state: .recording)
+        startLiveTranscription()
+    }
+
+    /// Re-transcribes the last few seconds roughly every second while recording so words appear as you speak.
+    private func startLiveTranscription() {
+        liveTask?.cancel()
+        guard settings.liveTranscription, settings.transcriptionBackend == .local,
+              let modelURL = ModelManager.shared.selectedModelURL else { return }
+        let language = settings.language
+        let prompt = TranscriptionPrompt.build(vocabulary: settings.vocabulary)
+        liveTask = Task { [weak self] in
+            var lastCount = 0
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .milliseconds(800))
+                guard let self, !Task.isCancelled, self.state == .recording else { return }
+                let (samples, truncated) = self.capture.snapshot(lastSeconds: 25)
+                guard samples.count > Int(AudioCapture.sampleRate * 0.8), samples.count != lastCount else { continue }
+                lastCount = samples.count
+                let useGPU = UIApplication.shared.applicationState != .background
+                let result = try? await Task.detached(priority: .userInitiated) { () throws -> WhisperResult in
+                    try await WhisperEngine.shared.load(modelAt: modelURL, useGPU: useGPU)
+                    return try await WhisperEngine.shared.transcribe(
+                        samples: AudioPreprocessor.normalized(samples), language: language, prompt: prompt, fast: true)
+                }.value
+                guard let result, !Task.isCancelled, self.state == .recording,
+                      result.noSpeechProbability < FallbackPolicy.noSpeechCutoff else { continue }
+                let text = TextOptimizer.cleanTranscript(result.text)
+                guard !text.isEmpty else { continue }
+                self.liveText = truncated ? "…" + text : text
+                SharedStore.publish(livePartial: self.liveText)
+            }
+        }
     }
 
     func stopRecording() {
         guard state == .recording, !isCalibrating else { return }
         let samples = capture.endRecording()
+        liveTask?.cancel()
         let mode = SharedStore.mode(withID: currentModeID)
         update(state: .transcribing)
         level = 0
@@ -299,6 +335,11 @@ final class DictationController: ObservableObject {
     // MARK: State
 
     private func update(state newState: DictationState, message: String? = nil) {
+        if newState != .recording && newState != .transcribing {
+            liveTask?.cancel()
+            liveText = ""
+            SharedStore.publish(livePartial: nil)
+        }
         state = newState
         statusMessage = message
         SharedStore.publish(state: newState, message: message)

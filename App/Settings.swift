@@ -38,6 +38,8 @@ final class AppSettings: ObservableObject {
     @Published var sessionTimeoutMinutes: Int { didSet { save(sessionTimeoutMinutes, "sessionTimeoutMinutes") } }
     /// Re-transcribe with Groq when the on-device result is missing or below `fallbackConfidenceThreshold`.
     @Published var cloudFallbackEnabled: Bool { didSet { save(cloudFallbackEnabled, "cloudFallbackEnabled") } }
+    /// Show words while speaking (fast on-device passes); the final text still comes from a full pass on stop.
+    @Published var liveTranscription: Bool { didSet { save(liveTranscription, "liveTranscription") } }
     @Published var fallbackConfidenceThreshold: Double { didSet { save(fallbackConfidenceThreshold, "fallbackConfidenceThreshold") } }
 
     private init() {
@@ -52,6 +54,7 @@ final class AppSettings: ObservableObject {
         let timeout = d.integer(forKey: "sessionTimeoutMinutes")
         sessionTimeoutMinutes = timeout > 0 ? timeout : 10
         cloudFallbackEnabled = d.object(forKey: "cloudFallbackEnabled") as? Bool ?? true
+        liveTranscription = d.object(forKey: "liveTranscription") as? Bool ?? true
         let threshold = d.double(forKey: "fallbackConfidenceThreshold")
         fallbackConfidenceThreshold = threshold > 0 ? threshold : 0.55
     }

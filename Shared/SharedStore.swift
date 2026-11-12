@@ -41,6 +41,7 @@ enum SharedStore {
         static let modes = "modes"
         static let selectedModeID = "modes.selected"
         static let keyboardConnected = "keyboard.connected"
+        static let livePartial = "session.livePartial"
     }
 
     /// The app refreshes the heartbeat from its audio tap while a background session is running.
@@ -100,6 +101,18 @@ enum SharedStore {
     static func publish(transcript: TranscriptPayload) {
         self.transcript = transcript
         DarwinNotifier.shared.post(.transcript)
+    }
+
+    /// Rolling preview of the words recognised so far while recording; nil when not recording.
+    static var livePartial: String? {
+        get { defaults.string(forKey: Key.livePartial) }
+        set { defaults.set(newValue, forKey: Key.livePartial) }
+    }
+
+    static func publish(livePartial: String?) {
+        guard self.livePartial != livePartial else { return }
+        self.livePartial = livePartial
+        DarwinNotifier.shared.post(.live)
     }
 
     /// A start request from a widget, control or shortcut that the app picks up when it becomes active.

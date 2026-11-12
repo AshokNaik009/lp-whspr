@@ -65,13 +65,25 @@ struct KeyboardView: View {
         }
     }
 
+    @ViewBuilder
     private var statusLine: some View {
-        Text(statusText)
-            .font(.caption)
-            .foregroundStyle(model.state == .error || model.hint != nil ? Color.orange : Color.secondary)
-            .multilineTextAlignment(.center)
-            .lineLimit(2)
-            .frame(minHeight: 30)
+        if let live = model.liveText, !live.isEmpty, model.hint == nil {
+            Text(live)
+                .font(.subheadline)
+                .foregroundStyle(model.state == .transcribing ? Color.secondary : Color.primary)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .truncationMode(.head)
+                .frame(maxWidth: .infinity, minHeight: 30)
+                .animation(.easeOut(duration: 0.2), value: live)
+        } else {
+            Text(statusText)
+                .font(.caption)
+                .foregroundStyle(model.state == .error || model.hint != nil ? Color.orange : Color.secondary)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .frame(minHeight: 30)
+        }
     }
 
     private var statusText: String {

@@ -5,6 +5,7 @@ enum DarwinSignal: String {
     case command = "com.leapwhisper.command"
     case state = "com.leapwhisper.state"
     case transcript = "com.leapwhisper.transcript"
+    case live = "com.leapwhisper.live"
     case pendingStart = "com.leapwhisper.pendingStart"
 }
 

@@ -22,6 +22,7 @@ struct SettingsView: View {
                         ForEach(languages, id: \.0) { Text($0.1).tag($0.0) }
                     }
                     TextField("Custom vocabulary (names, jargon)", text: $settings.vocabulary, axis: .vertical)
+                    Toggle("Live transcription while speaking", isOn: $settings.liveTranscription)
                     NavigationLink { CalibrationView() } label: { Label("Calibrate models", systemImage: "slider.horizontal.3") }
                 }
 

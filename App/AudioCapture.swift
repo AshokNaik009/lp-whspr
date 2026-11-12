@@ -59,6 +59,13 @@ final class AudioCapture {
         lock.unlock()
     }
 
+    /// Copy of the samples recorded so far, limited to the most recent `lastSeconds`.
+    func snapshot(lastSeconds: Double) -> (samples: [Float], truncated: Bool) {
+        lock.lock(); defer { lock.unlock() }
+        let limit = Int(Self.sampleRate * lastSeconds)
+        return samples.count > limit ? (Array(samples.suffix(limit)), true) : (samples, false)
+    }
+
     /// Stops buffering and returns the captured 16 kHz mono samples.
     func endRecording() -> [Float] {
         lock.lock()

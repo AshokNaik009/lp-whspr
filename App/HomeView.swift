@@ -137,6 +137,19 @@ struct HomeView: View {
             }
             .multilineTextAlignment(.center)
             .padding(.horizontal)
+            if !controller.liveText.isEmpty && (isRecording || controller.state == .transcribing) {
+                Text(controller.liveText)
+                    .font(.body)
+                    .foregroundStyle(.white.opacity(controller.state == .transcribing ? 0.6 : 0.95))
+                    .lineLimit(5)
+                    .truncationMode(.head)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(14)
+                    .glassCard(cornerRadius: 18)
+                    .padding(.horizontal)
+                    .animation(.easeOut(duration: 0.2), value: controller.liveText)
+                    .transition(.opacity)
+            }
             if controller.isSessionActive && !isRecording {
                 Button("End session") { controller.endSession() }
                     .font(.footnote.weight(.semibold))
