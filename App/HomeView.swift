@@ -13,6 +13,7 @@ struct HomeView: View {
     @State private var keyboardInstalled = KeyboardStatus.isInstalled
     @State private var keyboardFullAccess = KeyboardStatus.hasFullAccess
     @State private var copied = false
+    @ObservedObject private var history = HistoryStore.shared
     @State private var showsOnboarding = false
     @AppStorage("onboarding.presented") private var onboardingPresented = false
 
@@ -26,6 +27,7 @@ struct HomeView: View {
                     if controller.openedFromKeyboard && controller.isSessionActive {
                         returnBanner
                     }
+                    if !history.records.isEmpty { timeSavedCard }
                     recorderCard
                     modeSection
                     if !controller.lastTranscript.isEmpty { transcriptCard }
@@ -130,9 +132,19 @@ struct HomeView: View {
             micButton
             waveform
             VStack(spacing: 4) {
-                Text(statusTitle)
-                    .font(.headline)
-                    .foregroundStyle(.white)
+                if controller.state == .transcribing {
+                    TimelineView(.periodic(from: .now, by: 1.5)) { context in
+                        Text(BusyPhrases.phrase(at: context.date))
+                            .font(.headline)
+                            .foregroundStyle(.white)
+                            .contentTransition(.opacity)
+                            .animation(.easeInOut(duration: 0.3), value: context.date)
+                    }
+                } else {
+                    Text(statusTitle)
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                }
                 statusDetail
             }
             .multilineTextAlignment(.center)
@@ -281,6 +293,39 @@ struct HomeView: View {
         }
         if mode.id == "arabic" { return "Speak in any language; Arabic text is inserted." }
         return nil
+    }
+
+    // MARK: Time saved
+
+    private var timeSavedCard: some View {
+        let stats = history.stats
+        return HStack(spacing: 14) {
+            Image(systemName: "hourglass")
+                .font(.title2.weight(.semibold))
+                .foregroundStyle(LinearGradient(colors: [.cyan, .purple], startPoint: .top, endPoint: .bottom))
+                .frame(width: 44, height: 44)
+                .glass(in: Circle())
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Time saved")
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.white.opacity(0.7))
+                Text(StatsView.duration(minutes: stats.minutesSaved))
+                    .font(.title2.weight(.bold))
+                    .foregroundStyle(.white)
+                    .monospacedDigit()
+            }
+            Spacer()
+            VStack(alignment: .trailing, spacing: 2) {
+                Text("\(stats.words.formatted()) words")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.white)
+                Text("\(Int(stats.wordsPerMinute.rounded())) WPM vs \(Int(DictationStats.typingWordsPerMinute)) typing")
+                    .font(.caption2)
+                    .foregroundStyle(.white.opacity(0.65))
+            }
+        }
+        .padding(16)
+        .glassCard()
     }
 
     // MARK: Transcript

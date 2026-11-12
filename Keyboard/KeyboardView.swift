@@ -151,7 +151,7 @@ struct KeyboardView: View {
             } else if isTranscribing {
                 Image(systemName: "sparkles").foregroundStyle(KeyboardTheme.accent)
             }
-            if let live = model.liveText, !live.isEmpty, model.hint == nil {
+            if let live = model.liveText, !live.isEmpty, model.hint == nil, !isTranscribing {
                 Text(live)
                     .font(.subheadline)
                     .foregroundStyle(isTranscribing ? Color.secondary : Color.primary)
@@ -159,6 +159,14 @@ struct KeyboardView: View {
                     .truncationMode(.head)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .animation(.easeOut(duration: 0.2), value: live)
+            } else if isTranscribing && model.hint == nil {
+                TimelineView(.periodic(from: .now, by: 1.5)) { context in
+                    Text(BusyPhrases.phrase(at: context.date))
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(LinearGradient(colors: [.purple, .pink], startPoint: .leading, endPoint: .trailing))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .animation(.easeInOut(duration: 0.3), value: context.date)
+                }
             } else {
                 Text(statusText)
                     .font(.footnote.weight(.medium))
