@@ -71,14 +71,14 @@ struct HomeView: View {
     private var header: some View {
         HStack(alignment: .center) {
             VStack(alignment: .leading, spacing: 2) {
-                Text("Leap Whisper").font(.title2.weight(.bold))
+                Text("Leap Whisper").font(.jakarta(.title2, .bold))
                 Text("Speak naturally. It types for you.")
-                    .font(.subheadline)
+                    .font(.jakarta(.subheadline))
                     .foregroundStyle(.secondary)
             }
             Spacer(minLength: 12)
             Label(engineTitle, systemImage: engineSymbol)
-                .font(.caption.weight(.semibold))
+                .font(.jakarta(.caption, .semibold))
                 .lineLimit(1)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
@@ -106,15 +106,15 @@ struct HomeView: View {
     private var returnBanner: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 10) {
-                Image(systemName: "arrow.uturn.backward.circle.fill").font(.title)
+                Image(systemName: "arrow.uturn.backward.circle.fill").font(.jakarta(.title))
                 Text(isRecording ? "Recording — go back to your app" : "Mic is ready — go back to your app")
-                    .font(.headline)
+                    .font(.jakarta(.headline))
             }
             Text("Tap ◀ in the top-left corner. Keep talking; your words appear where you were typing. Tap ■ in the Leap Whisper keyboard to finish.")
-                .font(.subheadline)
+                .font(.jakarta(.subheadline))
                 .foregroundStyle(.white.opacity(0.9))
             Text("From now on the keyboard mic records without opening this app.")
-                .font(.footnote)
+                .font(.jakarta(.footnote))
                 .foregroundStyle(.white.opacity(0.75))
         }
         .foregroundStyle(.white)
@@ -135,14 +135,14 @@ struct HomeView: View {
                 if controller.state == .transcribing {
                     TimelineView(.periodic(from: .now, by: 1.5)) { context in
                         Text(BusyPhrases.phrase(at: context.date))
-                            .font(.headline)
+                            .font(.jakarta(.headline))
                             .foregroundStyle(.white)
                             .contentTransition(.opacity)
                             .animation(.easeInOut(duration: 0.3), value: context.date)
                     }
                 } else {
                     Text(statusTitle)
-                        .font(.headline)
+                        .font(.jakarta(.headline))
                         .foregroundStyle(.white)
                 }
                 statusDetail
@@ -151,7 +151,7 @@ struct HomeView: View {
             .padding(.horizontal)
             if !controller.liveText.isEmpty && (isRecording || controller.state == .transcribing) {
                 Text(controller.liveText)
-                    .font(.body)
+                    .font(.jakarta(.body))
                     .foregroundStyle(.white.opacity(controller.state == .transcribing ? 0.6 : 0.95))
                     .lineLimit(5)
                     .truncationMode(.head)
@@ -164,7 +164,7 @@ struct HomeView: View {
             }
             if controller.isSessionActive && !isRecording {
                 Button("End session") { controller.endSession() }
-                    .font(.footnote.weight(.semibold))
+                    .font(.jakarta(.footnote, .semibold))
                     .padding(.horizontal, 14)
                     .padding(.vertical, 7)
                     .glass(in: Capsule(), interactive: true)
@@ -206,16 +206,16 @@ struct HomeView: View {
         if isRecording, let start = recordingStart {
             TimelineView(.periodic(from: start, by: 1)) { context in
                 Text(Self.elapsed(from: start, to: context.date))
-                    .font(.subheadline.monospacedDigit())
+                    .font(.jakarta(.subheadline).monospacedDigit())
                     .foregroundStyle(.white.opacity(0.85))
             }
         } else if let message = controller.statusMessage {
             Text(message)
-                .font(.footnote)
+                .font(.jakarta(.footnote))
                 .foregroundStyle(controller.state == .error ? Color(red: 1, green: 0.85, blue: 0.85) : .white.opacity(0.8))
         } else {
             Text(controller.isSessionActive ? "Tap the mic and start talking" : "Starts a session the keyboard can use")
-                .font(.footnote)
+                .font(.jakarta(.footnote))
                 .foregroundStyle(.white.opacity(0.8))
         }
     }
@@ -241,45 +241,17 @@ struct HomeView: View {
     private var modeSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             sectionTitle("Mode")
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 3), spacing: 10) {
-                ForEach(modes) { mode in
-                    modeTile(mode)
-                }
-            }
+            ModeDial(modes: modes, selectedID: Binding(
+                get: { selectedModeID },
+                set: { selectedModeID = $0; SharedStore.selectedModeID = $0 }
+            ))
             if let hint = modeHint {
                 Text(hint)
-                    .font(.caption)
+                    .font(.jakarta(.caption))
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 4)
             }
         }
-    }
-
-    private func modeTile(_ mode: DictationMode) -> some View {
-        let selected = mode.id == selectedModeID
-        return Button {
-            selectedModeID = mode.id
-            SharedStore.selectedModeID = mode.id
-        } label: {
-            VStack(spacing: 6) {
-                Image(systemName: mode.symbol).font(.title3)
-                Text(mode.name)
-                    .font(.caption.weight(.semibold))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 14)
-            .glass(in: RoundedRectangle(cornerRadius: 18, style: .continuous), tint: selected ? Theme.accent : nil, interactive: true)
-            .overlay {
-                if selected {
-                    RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(Theme.accent.opacity(0.9), lineWidth: 1.5)
-                }
-            }
-            .foregroundStyle(selected ? Color.white : Color.primary.opacity(0.85))
-        }
-        .buttonStyle(.plain)
-        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 
     private var modeHint: String? {
@@ -301,26 +273,26 @@ struct HomeView: View {
         let stats = history.stats
         return HStack(spacing: 14) {
             Image(systemName: "hourglass")
-                .font(.title2.weight(.semibold))
+                .font(.jakarta(.title2, .semibold))
                 .foregroundStyle(LinearGradient(colors: [.cyan, .purple], startPoint: .top, endPoint: .bottom))
                 .frame(width: 44, height: 44)
                 .glass(in: Circle())
             VStack(alignment: .leading, spacing: 2) {
                 Text("Time saved")
-                    .font(.caption.weight(.medium))
+                    .font(.jakarta(.caption, .medium))
                     .foregroundStyle(.white.opacity(0.7))
                 Text(StatsView.duration(minutes: stats.minutesSaved))
-                    .font(.title2.weight(.bold))
+                    .font(.jakarta(.title2, .bold))
                     .foregroundStyle(.white)
                     .monospacedDigit()
             }
             Spacer()
             VStack(alignment: .trailing, spacing: 2) {
                 Text("\(stats.words.formatted()) words")
-                    .font(.subheadline.weight(.semibold))
+                    .font(.jakarta(.subheadline, .semibold))
                     .foregroundStyle(.white)
                 Text("\(Int(stats.wordsPerMinute.rounded())) WPM vs \(Int(DictationStats.typingWordsPerMinute)) typing")
-                    .font(.caption2)
+                    .font(.jakarta(.caption2))
                     .foregroundStyle(.white.opacity(0.65))
             }
         }
@@ -337,7 +309,7 @@ struct HomeView: View {
                 Spacer()
                 if !controller.lastSource.isEmpty {
                     Text(controller.lastSource)
-                        .font(.caption2.weight(.medium))
+                        .font(.jakarta(.caption2, .medium))
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
                         .glass(in: Capsule())
@@ -345,7 +317,7 @@ struct HomeView: View {
                 }
             }
             Text(controller.lastTranscript)
-                .font(.body)
+                .font(.jakarta(.body))
                 .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)
             HStack(spacing: 16) {
@@ -363,7 +335,7 @@ struct HomeView: View {
                     Label("Share", systemImage: "square.and.arrow.up")
                 }
             }
-            .font(.footnote.weight(.semibold))
+            .font(.jakarta(.footnote, .semibold))
             .tint(Theme.accent)
         }
         .padding()
@@ -404,7 +376,7 @@ struct HomeView: View {
                     showsOnboarding = true
                 } label: {
                     Label("Show me how", systemImage: "list.number")
-                        .font(.footnote.weight(.semibold))
+                        .font(.jakarta(.footnote, .semibold))
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .tint(Theme.accent)
@@ -419,15 +391,15 @@ struct HomeView: View {
     private func checklistRow(done: Bool, title: String, detail: String) -> some View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: done ? "checkmark.circle.fill" : "circle")
-                .font(.title3)
+                .font(.jakarta(.title3))
                 .foregroundStyle(done ? Color.green : Color.secondary)
                 .frame(width: 30)
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .font(.subheadline.weight(.semibold))
+                    .font(.jakarta(.subheadline, .semibold))
                     .strikethrough(done, color: .secondary)
                     .foregroundStyle(done ? .secondary : .primary)
-                Text(detail).font(.caption).foregroundStyle(.secondary)
+                Text(detail).font(.jakarta(.caption)).foregroundStyle(.secondary)
             }
             Spacer(minLength: 0)
         }
@@ -436,7 +408,7 @@ struct HomeView: View {
 
     private func sectionTitle(_ text: String) -> some View {
         Text(text)
-            .font(.footnote.weight(.semibold))
+            .font(.jakarta(.footnote, .semibold))
             .foregroundStyle(.secondary)
             .textCase(.uppercase)
             .padding(.horizontal, 4)

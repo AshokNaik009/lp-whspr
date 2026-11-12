@@ -13,6 +13,7 @@ final class KeyboardModel: ObservableObject {
     @Published var liveText: String?
     @Published var recordingStartedAt: Date?
     @Published var showingHistory = false
+    @Published var background = SharedStore.keyboardBackground
     @Published var history: [RecentDictation] = []
 
     private weak var controller: KeyboardViewController?
@@ -62,6 +63,8 @@ final class KeyboardModel: ObservableObject {
         liveText = state == .recording || state == .transcribing ? SharedStore.livePartial : nil
         modes = SharedStore.modes
         selectedModeID = SharedStore.selectedModeID
+        let storedBackground = SharedStore.keyboardBackground
+        if storedBackground != background { background = storedBackground }
     }
 
     func select(_ mode: DictationMode) {

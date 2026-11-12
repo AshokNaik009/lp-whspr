@@ -31,6 +31,11 @@ struct KeyboardView: View {
         .padding(.horizontal, 8)
         .padding(.vertical, 8)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background {
+            if let gradient = model.background.gradient { gradient.ignoresSafeArea() }
+        }
+        .modifier(DarkOnGradient(active: model.background.gradient != nil))
+        .environment(\.font, .jakarta(.body))
         .animation(.spring(response: 0.35, dampingFraction: 0.8), value: model.state)
     }
 
@@ -56,7 +61,7 @@ struct KeyboardView: View {
         let selected = model.selectedModeID == mode.id
         return Button { model.select(mode) } label: {
             Label(mode.name, systemImage: mode.symbol)
-                .font(.footnote.weight(.semibold))
+                .font(.jakarta(.footnote, .semibold))
                 .padding(.horizontal, 11).padding(.vertical, 7)
                 .background {
                     if selected {
@@ -92,7 +97,7 @@ struct KeyboardView: View {
     private var cancelButton: some View {
         Button(action: model.cancelTapped) {
             Image(systemName: "xmark")
-                .font(.system(size: 15, weight: .bold))
+                .font(.jakarta(size: 15, weight: .bold))
                 .foregroundStyle(.primary.opacity(0.8))
                 .frame(width: 40, height: 40)
                 .background(.ultraThinMaterial, in: Circle())
@@ -105,7 +110,7 @@ struct KeyboardView: View {
     private var timer: some View {
         TimelineView(.periodic(from: .now, by: 1)) { context in
             Text(Self.elapsed(from: model.recordingStartedAt ?? context.date, to: context.date))
-                .font(.system(.subheadline, design: .rounded).weight(.semibold).monospacedDigit())
+                .font(.jakarta(.subheadline, .semibold).monospacedDigit())
                 .foregroundStyle(KeyboardTheme.recording)
         }
     }
@@ -129,7 +134,7 @@ struct KeyboardView: View {
                         ProgressView().tint(.white).controlSize(.large)
                     } else {
                         Image(systemName: isRecording ? "stop.fill" : "mic.fill")
-                            .font(.system(size: isRecording ? 26 : 30, weight: .semibold))
+                            .font(.jakarta(size: isRecording ? 26 : 30, weight: .semibold))
                             .contentTransition(.symbolEffect(.replace))
                     }
                 }
@@ -153,7 +158,7 @@ struct KeyboardView: View {
             }
             if let live = model.liveText, !live.isEmpty, model.hint == nil, !isTranscribing {
                 Text(live)
-                    .font(.subheadline)
+                    .font(.jakarta(.subheadline))
                     .foregroundStyle(isTranscribing ? Color.secondary : Color.primary)
                     .lineLimit(2)
                     .truncationMode(.head)
@@ -162,14 +167,14 @@ struct KeyboardView: View {
             } else if isTranscribing && model.hint == nil {
                 TimelineView(.periodic(from: .now, by: 1.5)) { context in
                     Text(BusyPhrases.phrase(at: context.date))
-                        .font(.footnote.weight(.semibold))
+                        .font(.jakarta(.footnote, .semibold))
                         .foregroundStyle(LinearGradient(colors: [.purple, .pink], startPoint: .leading, endPoint: .trailing))
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .animation(.easeInOut(duration: 0.3), value: context.date)
                 }
             } else {
                 Text(statusText)
-                    .font(.footnote.weight(.medium))
+                    .font(.jakarta(.footnote, .medium))
                     .foregroundStyle(model.state == .error || model.hint != nil ? Color.orange : Color.secondary)
                     .lineLimit(2)
                     .multilineTextAlignment(isRecording || isTranscribing ? .leading : .center)
@@ -206,12 +211,12 @@ struct KeyboardView: View {
         VStack(spacing: 6) {
             HStack {
                 Label("Recent dictations", systemImage: "clock.arrow.circlepath")
-                    .font(.footnote.weight(.semibold))
+                    .font(.jakarta(.footnote, .semibold))
                     .foregroundStyle(.secondary)
                 Spacer()
                 Button { model.toggleHistory() } label: {
                     Image(systemName: "xmark")
-                        .font(.system(size: 12, weight: .bold))
+                        .font(.jakarta(size: 12, weight: .bold))
                         .frame(width: 28, height: 28)
                         .background(.ultraThinMaterial, in: Circle())
                 }
@@ -222,7 +227,7 @@ struct KeyboardView: View {
 
             if model.history.isEmpty {
                 Text("Nothing yet. Your dictations will show up here.")
-                    .font(.footnote)
+                    .font(.jakarta(.footnote))
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
@@ -243,17 +248,17 @@ struct KeyboardView: View {
             HStack(alignment: .top, spacing: 10) {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(item.text)
-                        .font(.subheadline)
+                        .font(.jakarta(.subheadline))
                         .foregroundStyle(.primary)
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)
                     Text("\(item.date.formatted(.relative(presentation: .named))) · \(item.modeName)")
-                        .font(.caption2)
+                        .font(.jakarta(.caption2))
                         .foregroundStyle(.secondary)
                 }
                 Spacer(minLength: 0)
                 Image(systemName: "arrow.up.left")
-                    .font(.caption.weight(.semibold))
+                    .font(.jakarta(.caption, .semibold))
                     .foregroundStyle(KeyboardTheme.accent)
             }
             .padding(.horizontal, 12).padding(.vertical, 9)
@@ -287,7 +292,7 @@ struct KeyboardView: View {
             Group {
                 if let systemImage { Image(systemName: systemImage) } else { Text(title ?? "") }
             }
-            .font(.system(size: 16, weight: .medium))
+            .font(.jakarta(size: 16, weight: .medium))
             .frame(maxWidth: width ?? .infinity, maxHeight: .infinity)
             .frame(width: width)
             .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
@@ -352,5 +357,14 @@ private struct KeyPressStyle: ButtonStyle {
         configuration.label
             .opacity(configuration.isPressed ? 0.6 : 1)
             .scaleEffect(configuration.isPressed ? 0.97 : 1)
+    }
+}
+
+/// Gradient backgrounds are dark enough that the keyboard reads best in dark appearance.
+private struct DarkOnGradient: ViewModifier {
+    let active: Bool
+
+    func body(content: Content) -> some View {
+        if active { content.environment(\.colorScheme, .dark) } else { content }
     }
 }

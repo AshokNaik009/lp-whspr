@@ -71,7 +71,7 @@ private struct HistoryRow: View {
                 Spacer()
                 Image(systemName: record.usedCloud ? "cloud" : "iphone")
             }
-            .font(.caption).foregroundStyle(.secondary)
+            .font(.jakarta(.caption)).foregroundStyle(.secondary)
         }
         .padding(.vertical, 2)
     }

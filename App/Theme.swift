@@ -103,7 +103,7 @@ struct OrbView: View {
                     ProgressView().tint(.white).scaleEffect(1.5)
                 } else {
                     Image(systemName: isRecording ? "stop.fill" : "mic.fill")
-                        .font(.system(size: 40, weight: .semibold))
+                        .font(.jakarta(size: 40, weight: .semibold))
                         .foregroundStyle(.white)
                         .shadow(color: .black.opacity(0.25), radius: 6, y: 2)
                         .contentTransition(.symbolEffect(.replace))

@@ -12,7 +12,7 @@ struct ModelsView: View {
         NavigationStack {
             List {
                 if let error = models.lastError {
-                    Section { Text(error).foregroundStyle(.red).font(.footnote) }
+                    Section { Text(error).foregroundStyle(.red).font(.jakarta(.footnote)) }
                 }
 
                 Section {
@@ -24,7 +24,7 @@ struct ModelsView: View {
                 Section("Installed") {
                     if models.installed.isEmpty {
                         Text("No models yet. Download one below or import a ggml .bin file.")
-                            .font(.footnote).foregroundStyle(.secondary)
+                            .font(.jakarta(.footnote)).foregroundStyle(.secondary)
                     }
                     ForEach(models.installed, id: \.self) { file in
                         HStack {
@@ -33,8 +33,8 @@ struct ModelsView: View {
                             } label: {
                                 HStack {
                                     VStack(alignment: .leading, spacing: 2) {
-                                        Text(displayName(file)).font(.subheadline)
-                                        Text(sizeText(file)).font(.caption).foregroundStyle(.secondary)
+                                        Text(displayName(file)).font(.jakarta(.subheadline))
+                                        Text(sizeText(file)).font(.jakarta(.caption)).foregroundStyle(.secondary)
                                     }
                                     Spacer()
                                     if settings.selectedModelFile == file {
@@ -113,9 +113,9 @@ struct ModelsView: View {
     private func catalogRow(_ model: WhisperModelInfo) -> some View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
-                Text(model.title).font(.subheadline.weight(.medium))
+                Text(model.title).font(.jakarta(.subheadline, .medium))
                 Text("\(model.detail) · \(ByteCountFormatter.string(fromByteCount: model.bytes, countStyle: .file))")
-                    .font(.caption).foregroundStyle(.secondary)
+                    .font(.jakarta(.caption)).foregroundStyle(.secondary)
             }
             Spacer()
             if let progress = models.progress[model.file] {

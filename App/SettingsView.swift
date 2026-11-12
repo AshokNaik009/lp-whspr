@@ -48,10 +48,10 @@ struct SettingsView: View {
                     if settings.optimizerBackend != .off && settings.optimizerBackend != .groq {
                         if let reason = TextOptimizer.appleUnavailableReason {
                             Label(reason, systemImage: "exclamationmark.triangle")
-                                .font(.footnote).foregroundStyle(.orange)
+                                .font(.jakarta(.footnote)).foregroundStyle(.orange)
                         } else {
                             Label("Apple Intelligence is ready on this iPhone.", systemImage: "checkmark.seal")
-                                .font(.footnote).foregroundStyle(.green)
+                                .font(.jakarta(.footnote)).foregroundStyle(.green)
                         }
                     }
                 }
@@ -86,6 +86,8 @@ struct SettingsView: View {
                 } footer: {
                     Text("The key is stored in this device's Keychain and only sent to api.groq.com.")
                 }
+
+                KeyboardBackgroundSection()
 
                 Section {
                     Stepper("Keep mic session alive: \(settings.sessionTimeoutMinutes) min", value: $settings.sessionTimeoutMinutes, in: 5...240, step: 5)

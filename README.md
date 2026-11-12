@@ -44,10 +44,13 @@ keyboard inserts it. Details: [specs/architecture.md](specs/architecture.md).
 The app uses a Liquid Glass look (iOS 26): a dark purple-blue aurora background, translucent glass cards and
 a glowing orb microphone that turns pink-orange and pulses while recording.
 
-- **Dictate:** orb mic with waveform and timer, live transcript card, a 3-column mode grid (Raw, Clean, Message,
-  Email, Notes, AI Prompt, To Arabic, custom) and the last transcript with Copy.
+- **Type:** Plus Jakarta Sans everywhere (bundled in `Shared/Fonts`, SIL Open Font License).
+- **Dictate:** time-saved card, orb mic with waveform and timer, a rotating "Whispermaxxing…" status while it
+  transcribes, live transcript, a rotary mode dial (drag to turn; it snaps with a haptic tick to Raw, Clean,
+  Message, Email, Notes, AI Prompt, To Arabic or a custom mode) and the last transcript with Copy.
 - **Keyboard:** mode chips, gradient orb mic with pulse rings, cancel and timer while recording, a glass strip
-  with the live words, and a clock key that shows recent dictations to re-insert.
+  with the live words, and a clock key that shows recent dictations to re-insert. Settings > Keyboard background
+  sets a gradient: Default, six presets, or a custom two-colour gradient.
 - **History, Stats, Models, Settings:** standard iOS lists (to be restyled). Models shows the recommended
   Large v3 Turbo, per-model size and a delete button.
 - **Onboarding:** a guided setup for downloading a model, adding the keyboard, Full Access and a practice field.

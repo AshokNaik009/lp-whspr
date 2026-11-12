@@ -51,6 +51,12 @@ targets:
         LeapAppGroup: $(LEAP_APP_GROUP)
         NSMicrophoneUsageDescription: Leap Whisper records your voice so it can be transcribed into text.
         UIBackgroundModes: [audio]
+        UIAppFonts: &fonts
+          - PlusJakartaSans-Regular.ttf
+          - PlusJakartaSans-Medium.ttf
+          - PlusJakartaSans-SemiBold.ttf
+          - PlusJakartaSans-Bold.ttf
+          - PlusJakartaSans-ExtraBold.ttf
         UILaunchScreen: {}
         ITSAppUsesNonExemptEncryption: false
         UIApplicationSceneManifest:
@@ -85,6 +91,7 @@ targets:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         LeapAppGroup: $(LEAP_APP_GROUP)
+        UIAppFonts: *fonts
         NSExtension:
           NSExtensionPointIdentifier: com.apple.keyboard-service
           NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).KeyboardViewController
@@ -99,7 +106,9 @@ targets:
     platform: iOS
     sources:
       - Widgets
-      - Shared
+      - path: Shared
+        excludes:
+          - "Fonts/**"
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: $(LEAP_BUNDLE_PREFIX).app.widgets

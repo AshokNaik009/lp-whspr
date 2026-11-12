@@ -8,6 +8,14 @@ struct LeapWhisperApp: App {
     @StateObject private var models = ModelManager.shared
     @Environment(\.scenePhase) private var scenePhase
 
+    init() {
+        let navigationBar = UINavigationBar.appearance()
+        navigationBar.largeTitleTextAttributes = [.font: UIFont.jakarta(size: 34, .bold)]
+        navigationBar.titleTextAttributes = [.font: UIFont.jakarta(size: 17, .semibold)]
+        UITabBarItem.appearance().setTitleTextAttributes([.font: UIFont.jakarta(size: 10, .medium)], for: .normal)
+        UISegmentedControl.appearance().setTitleTextAttributes([.font: UIFont.jakarta(size: 13, .medium)], for: .normal)
+    }
+
     var body: some Scene {
         WindowGroup {
             RootView()
@@ -48,6 +56,7 @@ struct RootView: View {
                 .tabItem { Label("Settings", systemImage: "gearshape") }
         }
         .tint(Theme.accent)
+        .environment(\.font, .jakarta(.body))
         .preferredColorScheme(.dark)
     }
 }

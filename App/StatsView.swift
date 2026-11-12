@@ -65,9 +65,9 @@ private struct StatCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Label(title, systemImage: systemImage).font(.caption).foregroundStyle(.secondary)
-            Text(value).font(.title2.bold()).monospacedDigit().minimumScaleFactor(0.6).lineLimit(1)
-            if let footnote { Text(footnote).font(.caption2).foregroundStyle(.secondary) }
+            Label(title, systemImage: systemImage).font(.jakarta(.caption)).foregroundStyle(.secondary)
+            Text(value).font(.jakarta(.title2, .bold)).monospacedDigit().minimumScaleFactor(0.6).lineLimit(1)
+            if let footnote { Text(footnote).font(.jakarta(.caption2)).foregroundStyle(.secondary) }
         }
         .frame(maxWidth: .infinity, minHeight: 80, alignment: .leading)
         .padding(12)

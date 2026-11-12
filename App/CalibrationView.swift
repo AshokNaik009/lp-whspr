@@ -129,21 +129,21 @@ struct CalibrationView: View {
         List {
             Section {
                 Text("Read this sentence aloud at your normal pace. Every installed model (and Groq, if enabled) transcribes the same recording so you can compare accuracy and speed on this device.")
-                    .font(.footnote).foregroundStyle(.secondary)
+                    .font(.jakarta(.footnote)).foregroundStyle(.secondary)
                 Text("“\(CalibrationRunner.referenceSentence)”")
-                    .font(.title3)
+                    .font(.jakarta(.title3))
                     .padding(.vertical, 4)
                 if settings.groqAPIKey != nil {
                     Toggle("Include Groq (online)", isOn: $runner.includeGroq)
                 }
                 recordButton
                 if let message = runner.message {
-                    Text(message).font(.footnote).foregroundStyle(.red)
+                    Text(message).font(.jakarta(.footnote)).foregroundStyle(.red)
                 }
             }
 
             if models.installed.isEmpty {
-                Section { Text("No local models installed. Download at least one in the Models tab to compare on-device accuracy.").font(.footnote) }
+                Section { Text("No local models installed. Download at least one in the Models tab to compare on-device accuracy.").font(.jakarta(.footnote)) }
             }
 
             if !runner.results.isEmpty {
@@ -211,9 +211,9 @@ private struct CalibrationRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Text(result.title).font(.headline)
+                Text(result.title).font(.jakarta(.headline))
                 if isRecommended {
-                    Text("Recommended").font(.caption2.bold()).padding(.horizontal, 6).padding(.vertical, 2)
+                    Text("Recommended").font(.jakarta(.caption2, .bold)).padding(.horizontal, 6).padding(.vertical, 2)
                         .background(.green.opacity(0.2), in: Capsule()).foregroundStyle(.green)
                 }
                 Spacer()
@@ -224,7 +224,7 @@ private struct CalibrationRow: View {
                 }
             }
             if let error = result.error {
-                Text(error).font(.caption).foregroundStyle(.red)
+                Text(error).font(.jakarta(.caption)).foregroundStyle(.red)
             } else if let accuracy = result.accuracy {
                 HStack(spacing: 12) {
                     Label(accuracy.formatted(.percent.precision(.fractionLength(0))), systemImage: "checkmark.seal")
@@ -233,10 +233,10 @@ private struct CalibrationRow: View {
                         Label(Double(confidence).formatted(.percent.precision(.fractionLength(0))), systemImage: "gauge.medium")
                     }
                 }
-                .font(.caption).foregroundStyle(.secondary)
-                Text(result.text).font(.footnote)
+                .font(.jakarta(.caption)).foregroundStyle(.secondary)
+                Text(result.text).font(.jakarta(.footnote))
             } else {
-                Text("Waiting…").font(.caption).foregroundStyle(.secondary)
+                Text("Waiting…").font(.jakarta(.caption)).foregroundStyle(.secondary)
             }
         }
         .padding(.vertical, 2)

@@ -35,7 +35,7 @@ struct OnboardingView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
                     Text("Four quick steps and you can dictate into any app: WhatsApp, Notes, Mail, Slack.")
-                        .font(.subheadline)
+                        .font(.jakarta(.subheadline))
                         .foregroundStyle(.secondary)
                         .padding(.bottom, 4)
                     modelStep
@@ -71,7 +71,7 @@ struct OnboardingView: View {
             if let progress = models.progress[Self.starterModel.file] {
                 ProgressView(value: progress) {
                     Text("Downloading \(Self.starterModel.title)… \(Int(progress * 100))%")
-                        .font(.caption)
+                        .font(.jakarta(.caption))
                 }
             } else if !hasEngine {
                 Button {
@@ -125,7 +125,7 @@ struct OnboardingView: View {
                 .lineLimit(3...6)
                 .padding(12)
                 .background(Color(.tertiarySystemFill), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                .font(.body)
+                .font(.jakarta(.body))
                 .foregroundStyle(.primary)
         }
     }
@@ -154,16 +154,16 @@ private struct StepCard<Content: View>: View {
                     .fill(done ? AnyShapeStyle(Color.green) : AnyShapeStyle(Theme.gradient))
                     .frame(width: 30, height: 30)
                 if done {
-                    Image(systemName: "checkmark").font(.footnote.weight(.bold))
+                    Image(systemName: "checkmark").font(.jakarta(.footnote, .bold))
                 } else {
-                    Text("\(number)").font(.footnote.weight(.bold))
+                    Text("\(number)").font(.jakarta(.footnote, .bold))
                 }
             }
             .foregroundStyle(.white)
             VStack(alignment: .leading, spacing: 10) {
-                Text(title).font(.headline)
+                Text(title).font(.jakarta(.headline))
                 content
-                    .font(.footnote)
+                    .font(.jakarta(.footnote))
                     .foregroundStyle(.secondary)
             }
             Spacer(minLength: 0)

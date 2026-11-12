@@ -44,6 +44,7 @@ enum SharedStore {
         static let keyboardConnected = "keyboard.connected"
         static let livePartial = "session.livePartial"
         static let recentHistory = "history.recent"
+        static let keyboardBackground = "keyboard.background"
     }
 
     /// The app refreshes the heartbeat from its audio tap while a background session is running.
@@ -149,6 +150,11 @@ enum SharedStore {
         let merged = saved + added
         modes = merged
         return merged
+    }
+
+    static var keyboardBackground: KeyboardBackground {
+        get { decode(KeyboardBackground.self, key: Key.keyboardBackground) ?? .system }
+        set { encode(newValue, key: Key.keyboardBackground) }
     }
 
     static var selectedModeID: String {
