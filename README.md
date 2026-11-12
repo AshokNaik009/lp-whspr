@@ -6,6 +6,36 @@ recording on and off and types the transcript into any app. Transcription runs o
 for low-confidence results, or it can be the main engine. Optimization modes (Clean, Message, Email,
 Notes, AI Prompt, custom) rewrite the transcript with Apple Intelligence (on-device) or a Groq LLM.
 
+## Architecture
+
+```
+┌─ Any app (WhatsApp, Notes, Mail…) ─┐                  ┌─ Leap Whisper app (background audio) ──┐
+│                                    │  start / stop    │                                        │
+│  LeapKeyboard (extension)          │ ───────────────▶ │  AudioCapture   AVAudioEngine, 16 kHz  │
+│   • mode chips  • mic toggle       │  Darwin notify + │        │                               │
+│   • inserts text via               │  App Group       │        ▼                               │
+│     textDocumentProxy              │                  │  WhisperEngine  whisper.cpp + Metal    │
+│                                    │   transcript     │        │  text + confidence            │
+│                                    │ ◀─────────────── │        ▼                               │
+└────────────────────────────────────┘                  │  FallbackPolicy ── low confidence ──┐  │
+                                                        │        │ ok                         │  │
+┌─ LeapWidgets ──────────────────────┐  open / start    │        │                            ▼  │      ┌─ Groq API ─────────────┐
+│  Home & Lock Screen widgets        │ ───────────────▶ │        │                  GroqClient ──┼────▶ │ whisper-large-v3-turbo │
+│  Control Center control            │                  │        ▼                     (WAV)     │      │ gpt-oss-20b (rewrite)  │
+│  Siri / Action Button intent       │                  │  TextOptimizer  mode rewrite:          │      └────────────────────────┘
+└────────────────────────────────────┘                  │                 Apple Intelligence     │
+                                                        │                 or Groq LLM            │
+┌─ On device ────────────────────────┐                  │        │                               │
+│  Models/*.bin  ◀── Hugging Face    │ ◀──────────────▶ │        ▼                               │
+│  history.json   (History · Stats)  │                  │  HistoryStore · Stats · Calibration    │
+│  Keychain       (Groq API key)     │                  │                                        │
+└────────────────────────────────────┘                  └────────────────────────────────────────┘
+```
+
+Flow: keyboard mic → app records → on-device whisper.cpp → if confidence is below the threshold (and it isn't
+silence), the WAV goes to Groq → selected mode rewrites the text → keyboard inserts it. Details:
+[specs/architecture.md](specs/architecture.md).
+
 ## How the keyboard dictates
 
 iOS does not let keyboard extensions use the microphone, so the app owns the mic:
