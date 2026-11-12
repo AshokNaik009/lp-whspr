@@ -106,20 +106,23 @@ struct HomeView: View {
     }
 
     private var returnBanner: some View {
-        HStack(alignment: .top, spacing: 12) {
-            Image(systemName: "arrow.uturn.backward.circle.fill")
-                .font(.title2)
-                .foregroundStyle(Theme.accent)
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Session is live").font(.headline)
-                Text("Swipe back to your app (tap ◀ in the top-left corner). The keyboard mic now toggles recording directly.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 10) {
+                Image(systemName: "arrow.uturn.backward.circle.fill").font(.title)
+                Text(isRecording ? "Recording — go back to your app" : "Mic is ready — go back to your app")
+                    .font(.headline)
             }
+            Text("Tap ◀ in the top-left corner. Keep talking; your words appear where you were typing. Tap ■ in the Leap Whisper keyboard to finish.")
+                .font(.subheadline)
+                .foregroundStyle(.white.opacity(0.9))
+            Text("From now on the keyboard mic records without opening this app.")
+                .font(.footnote)
+                .foregroundStyle(.white.opacity(0.75))
         }
+        .foregroundStyle(.white)
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
-        .background(Theme.accent.opacity(0.14), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .background(Color.orange.gradient, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
     }
 
     // MARK: Recorder

@@ -15,6 +15,7 @@ final class DictationController: ObservableObject {
     @Published private(set) var lastTranscript: String = ""
     @Published private(set) var lastSource: String = ""
     @Published var openedFromKeyboard = false
+    @Published private(set) var returnedToHost = false
 
     private let capture = AudioCapture()
     private let settings = AppSettings.shared
@@ -58,9 +59,16 @@ final class DictationController: ObservableObject {
         let modeID = items.first { $0.name == "mode" }?.value
         let shouldStart = items.first { $0.name == "start" }?.value == "1"
         openedFromKeyboard = items.first { $0.name == "source" }?.value == "keyboard"
+        let host = items.first { $0.name == "host" }?.value
+        returnedToHost = false
         Task {
             guard await ensureSession() else { return }
             if shouldStart { startRecording(modeID: modeID) }
+            if openedFromKeyboard {
+                // Give the audio engine a moment to go live before leaving the foreground.
+                try? await Task.sleep(for: .milliseconds(400))
+                returnedToHost = HostAppReturn.goBack(to: host)
+            }
         }
     }
 

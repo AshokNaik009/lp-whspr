@@ -77,6 +77,9 @@ final class KeyboardModel: ObservableObject {
             } else {
                 var components = URLComponents(url: AppGroup.sessionURL(startWithMode: selectedModeID), resolvingAgainstBaseURL: false)!
                 components.queryItems?.append(URLQueryItem(name: "source", value: "keyboard"))
+                if let host = controller?.hostBundleID {
+                    components.queryItems?.append(URLQueryItem(name: "host", value: host))
+                }
                 if controller?.openContainingApp(components.url!) != true {
                     hint = "Open the Leap Whisper app once to start a session."
                 }

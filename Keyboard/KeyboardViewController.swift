@@ -41,6 +41,14 @@ final class KeyboardViewController: UIInputViewController {
         model.showsGlobeKey = needsInputModeSwitchKey
     }
 
+    /// Bundle ID of the app being typed into, when iOS exposes it; used to jump back after starting the mic.
+    var hostBundleID: String? {
+        let key = "_hostBundleID"
+        guard let parent, parent.responds(to: NSSelectorFromString(key)),
+              let value = parent.value(forKey: key) as? String, !value.isEmpty, value != "<null>" else { return nil }
+        return value
+    }
+
     func openContainingApp(_ url: URL) -> Bool {
         URLOpener.open(url, from: self)
     }
