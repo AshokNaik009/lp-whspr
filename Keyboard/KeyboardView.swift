@@ -17,11 +17,15 @@ struct KeyboardView: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            modeBar
-            Spacer(minLength: 0)
-            controls
-            statusStrip
-            Spacer(minLength: 0)
+            if model.showingHistory {
+                historyPanel
+            } else {
+                modeBar
+                Spacer(minLength: 0)
+                controls
+                statusStrip
+                Spacer(minLength: 0)
+            }
             bottomRow
         }
         .padding(.horizontal, 8)
@@ -188,6 +192,71 @@ struct KeyboardView: View {
         }
     }
 
+    // MARK: History
+
+    private var historyPanel: some View {
+        VStack(spacing: 6) {
+            HStack {
+                Label("Recent dictations", systemImage: "clock.arrow.circlepath")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Button { model.toggleHistory() } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 12, weight: .bold))
+                        .frame(width: 28, height: 28)
+                        .background(.ultraThinMaterial, in: Circle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Close history")
+            }
+            .padding(.horizontal, 4)
+
+            if model.history.isEmpty {
+                Text("Nothing yet. Your dictations will show up here.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 6) {
+                        ForEach(model.history) { item in
+                            historyRow(item)
+                        }
+                    }
+                }
+            }
+        }
+        .transition(.opacity)
+    }
+
+    private func historyRow(_ item: RecentDictation) -> some View {
+        Button { model.insertFromHistory(item) } label: {
+            HStack(alignment: .top, spacing: 10) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(item.text)
+                        .font(.subheadline)
+                        .foregroundStyle(.primary)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                    Text("\(item.date.formatted(.relative(presentation: .named))) · \(item.modeName)")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "arrow.up.left")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(KeyboardTheme.accent)
+            }
+            .padding(.horizontal, 12).padding(.vertical, 9)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Color.primary.opacity(0.06)))
+        }
+        .buttonStyle(KeyPressStyle())
+        .accessibilityHint("Inserts this text")
+    }
+
     // MARK: Keys
 
     private var bottomRow: some View {
@@ -195,6 +264,9 @@ struct KeyboardView: View {
             if model.showsGlobeKey {
                 key(systemImage: "globe", width: 46, action: model.nextKeyboard)
             }
+            key(systemImage: model.showingHistory ? "mic" : "clock.arrow.circlepath", width: 46, action: model.toggleHistory)
+                .disabled(isRecording || isTranscribing)
+                .accessibilityLabel(model.showingHistory ? "Back to dictation" : "Recent dictations")
             key(title: "space", action: model.insertSpace)
             key(systemImage: "delete.left", width: 56, action: model.deleteBackward)
             key(systemImage: "return", width: 56, action: model.insertReturn)

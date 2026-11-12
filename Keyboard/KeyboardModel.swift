@@ -12,6 +12,8 @@ final class KeyboardModel: ObservableObject {
     @Published var hint: String?
     @Published var liveText: String?
     @Published var recordingStartedAt: Date?
+    @Published var showingHistory = false
+    @Published var history: [RecentDictation] = []
 
     private weak var controller: KeyboardViewController?
     private var tokens: [UUID] = []
@@ -94,6 +96,21 @@ final class KeyboardModel: ObservableObject {
                 }
             }
         }
+    }
+
+    func toggleHistory() {
+        hint = nil
+        guard hasFullAccess else {
+            hint = "Turn on Allow Full Access for Leap Whisper to see your history here."
+            return
+        }
+        if !showingHistory { history = SharedStore.recentHistory }
+        showingHistory.toggle()
+    }
+
+    func insertFromHistory(_ item: RecentDictation) {
+        insert(item.text)
+        showingHistory = false
     }
 
     func cancelTapped() {

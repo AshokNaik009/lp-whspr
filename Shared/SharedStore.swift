@@ -43,6 +43,7 @@ enum SharedStore {
         static let knownBuiltInModeIDs = "modes.knownBuiltIns"
         static let keyboardConnected = "keyboard.connected"
         static let livePartial = "session.livePartial"
+        static let recentHistory = "history.recent"
     }
 
     /// The app refreshes the heartbeat from its audio tap while a background session is running.
@@ -122,6 +123,12 @@ enum SharedStore {
         set { defaults.set(newValue, forKey: Key.pendingStart) }
     }
 
+    /// The latest dictations, mirrored by the app so the keyboard can show and re-insert them.
+    static var recentHistory: [RecentDictation] {
+        get { decode([RecentDictation].self, key: Key.recentHistory) ?? [] }
+        set { encode(newValue, key: Key.recentHistory) }
+    }
+
     static var modes: [DictationMode] {
         get {
             guard let saved = decode([DictationMode].self, key: Key.modes) else { return DictationMode.defaults }
@@ -166,4 +173,11 @@ enum SharedStore {
         }
         defaults.set(try? JSONEncoder().encode(value), forKey: key)
     }
+}
+
+struct RecentDictation: Codable, Identifiable, Hashable {
+    var id: UUID
+    var date: Date
+    var text: String
+    var modeName: String
 }

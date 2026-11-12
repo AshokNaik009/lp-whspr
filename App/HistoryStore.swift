@@ -4,6 +4,7 @@ import Foundation
 final class HistoryStore: ObservableObject {
     static let shared = HistoryStore()
     private static let limit = 2000
+    private static let keyboardLimit = 50
 
     @Published private(set) var records: [DictationRecord] = []
 
@@ -18,6 +19,7 @@ final class HistoryStore: ObservableObject {
            let decoded = try? JSONDecoder().decode([DictationRecord].self, from: data) {
             records = decoded
         }
+        publishRecent()
     }
 
     func add(_ record: DictationRecord) {
@@ -38,7 +40,14 @@ final class HistoryStore: ObservableObject {
 
     var stats: DictationStats { DictationStats(records: records) }
 
+    private func publishRecent() {
+        SharedStore.recentHistory = records.prefix(Self.keyboardLimit).map {
+            RecentDictation(id: $0.id, date: $0.date, text: $0.finalText, modeName: $0.modeName)
+        }
+    }
+
     private func save() {
+        publishRecent()
         let snapshot = records
         let url = fileURL
         Task.detached(priority: .utility) {
