@@ -45,6 +45,11 @@ The Groq key is entered in the app's Settings and stored in the iOS Keychain. It
 binary. For a public App Store release, put a small proxy (e.g. a Cloudflare Worker) in front of Groq instead of
 per-user keys.
 
+## Specs
+
+This project uses spec-driven development. Product goals, the architecture, decision records and one spec per feature, with
+numbered requirements and acceptance criteria, live in [`specs/`](specs/README.md). PRs reference the requirement IDs they implement.
+
 ## App
 
 - **Dictate**: mic button, live level, mode picker, last transcript.
