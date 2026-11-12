@@ -54,6 +54,7 @@ a glowing orb microphone that turns pink-orange and pulses while recording.
 - **History, Stats, Models, Settings:** standard iOS lists (to be restyled). Models shows the recommended
   Large v3 Turbo, per-model size and a delete button.
 - **Onboarding:** a guided setup for downloading a model, adding the keyboard, Full Access and a practice field.
+- **App guide:** Settings > Help > App guide has step-by-step how-tos for dictation, the keyboard, modes, Groq, models, history, keyboard backgrounds and recording a demo.
 
 ## How the keyboard dictates
 

@@ -14,6 +14,14 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
+                Section("Help") {
+                    NavigationLink {
+                        GuideView()
+                    } label: {
+                        Label("App guide", systemImage: "book.fill")
+                    }
+                }
+
                 Section("Transcription") {
                     Picker("Engine", selection: $settings.transcriptionBackend) {
                         ForEach(TranscriptionBackend.allCases) { Text($0.title).tag($0) }
