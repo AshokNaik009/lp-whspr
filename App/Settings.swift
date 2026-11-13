@@ -37,6 +37,8 @@ final class AppSettings: ObservableObject {
     @Published var vocabulary: String { didSet { save(vocabulary, "vocabulary") } }
     @Published var groqTranscriptionModel: String { didSet { save(groqTranscriptionModel, "groqTranscriptionModel") } }
     @Published var groqChatModel: String { didSet { save(groqChatModel, "groqChatModel") } }
+    /// Used by modes that translate; a rewrite-sized model gets idioms and Arabic grammar wrong.
+    @Published var groqTranslationModel: String { didSet { save(groqTranslationModel, "groqTranslationModel") } }
     /// Keeps the mic on after a dictation so the next keyboard tap records without opening the app.
     @Published var micStandby: MicStandby { didSet { SharedStore.micStandby = micStandby } }
     /// Re-transcribe with Groq when the on-device result is missing or below `fallbackConfidenceThreshold`.
@@ -55,6 +57,7 @@ final class AppSettings: ObservableObject {
         vocabulary = d.string(forKey: "vocabulary") ?? ""
         groqTranscriptionModel = d.string(forKey: "groqTranscriptionModel") ?? "whisper-large-v3-turbo"
         groqChatModel = d.string(forKey: "groqChatModel") ?? "openai/gpt-oss-20b"
+        groqTranslationModel = d.string(forKey: "groqTranslationModel") ?? "qwen/qwen3.8-27b"
         micStandby = SharedStore.micStandby
         cloudFallbackEnabled = d.object(forKey: "cloudFallbackEnabled") as? Bool ?? true
         liveTranscription = d.object(forKey: "liveTranscription") as? Bool ?? true

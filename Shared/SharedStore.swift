@@ -141,7 +141,10 @@ enum SharedStore {
     static var modes: [DictationMode] {
         get {
             guard let saved = decode([DictationMode].self, key: Key.modes) else { return DictationMode.defaults }
-            return addingNewBuiltIns(to: saved)
+            let merged = addingNewBuiltIns(to: saved)
+            let refreshed = DictationMode.refreshingBuiltIns(merged)
+            if refreshed != merged { encode(refreshed, key: Key.modes) }
+            return refreshed
         }
         set {
             encode(newValue, key: Key.modes)

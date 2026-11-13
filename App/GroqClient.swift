@@ -49,6 +49,7 @@ struct GroqClient {
         var payload: [String: Any] = [
             "model": model,
             "temperature": 0.2,
+            "max_completion_tokens": RewritePrompt.completionTokenLimit(for: user),
             "messages": [
                 ["role": "system", "content": system],
                 ["role": "user", "content": user],
@@ -56,6 +57,8 @@ struct GroqClient {
         ]
         // gpt-oss models reason before answering; a rewrite doesn't need it and low effort cuts latency.
         if model.hasPrefix("openai/gpt-oss") { payload["reasoning_effort"] = "low" }
+        // Qwen answers directly unless asked to think; saying so keeps <think> text out of the reply.
+        if model.hasPrefix("qwen/") { payload["reasoning_effort"] = "none" }
         request.httpBody = try JSONSerialization.data(withJSONObject: payload)
 
         struct Response: Decodable {

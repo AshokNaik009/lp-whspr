@@ -11,6 +11,15 @@ struct SettingsView: View {
         ("ja", "Japanese"), ("ur", "Urdu"), ("ta", "Tamil"), ("ml", "Malayalam"),
     ]
 
+    private func modelField(_ label: String, text: Binding<String>) -> some View {
+        LabeledContent(label) {
+            TextField("model id", text: text)
+                .multilineTextAlignment(.trailing)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+        }
+    }
+
     var body: some View {
         NavigationStack {
             Form {
@@ -96,14 +105,13 @@ struct SettingsView: View {
                         }
                         .disabled(groqKey.isEmpty)
                     }
-                    TextField("Transcription model", text: $settings.groqTranscriptionModel)
-                        .textInputAutocapitalization(.never)
-                    TextField("Rewrite model", text: $settings.groqChatModel)
-                        .textInputAutocapitalization(.never)
+                    modelField("Transcription", text: $settings.groqTranscriptionModel)
+                    modelField("Rewrite", text: $settings.groqChatModel)
+                    modelField("Translation", text: $settings.groqTranslationModel)
                 } header: {
                     Text("Groq")
                 } footer: {
-                    Text("The key is stored in this device's Keychain and only sent to api.groq.com.")
+                    Text("The key is stored in this device's Keychain and only sent to api.groq.com. To Arabic and any mode whose instructions say \"translate\" use the translation model, and fall back to the rewrite model if it fails.")
                 }
 
                 Section {

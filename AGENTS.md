@@ -21,6 +21,18 @@ export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer PATH=/opt/homebr
 
 The team ID and bundle prefix live in the git-ignored `Config/Local.xcconfig`.
 
+## Checking real results
+
+History and settings can be read off the phone, which is the quickest way to see what a mode actually produced:
+
+```bash
+xcrun devicectl device copy from --device <UDID> --domain-type appDataContainer --domain-identifier <bundle id> \
+  --source "Library/Application Support/history.json" --destination /tmp/history.json
+```
+
+The Groq key lives in the phone's Keychain, so rewrite and translation models can't be called from the Mac unless
+`GROQ_API_KEY` is exported in the shell.
+
 ## Things that can't be tested from the Mac
 
 Keyboard dictation, the microphone and the orange indicator need a person holding the phone. Say which acceptance criteria

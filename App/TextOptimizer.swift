@@ -8,6 +8,7 @@ enum TextOptimizerError: LocalizedError {
     case rewritingOff
     case noEngine
     case appleLanguageUnsupported
+    case notTranslated
 
     var errorDescription: String? {
         switch self {
@@ -19,25 +20,25 @@ enum TextOptimizerError: LocalizedError {
             return "\(TextOptimizer.appleUnavailableReason ?? "Apple Intelligence isn't available.") Or add a Groq API key in Settings."
         case .appleLanguageUnsupported:
             return "Apple's on-device model doesn't support Arabic yet. Add a Groq API key in Settings to translate."
+        case .notTranslated:
+            return "the translation didn't come back in Arabic, so your words were inserted as spoken."
         }
     }
 }
 
 enum TextOptimizer {
-    private static let guardrail = "You receive a raw speech-to-text transcript. Apply the instructions and reply with the rewritten text only — no preamble, no quotes, no explanations."
-
     static func cleanTranscript(_ text: String) -> String { TranscriptCleaner.clean(text) }
 
     static func optimize(_ text: String, mode: DictationMode, settings: AppSettings) async throws -> String {
         guard !mode.isVerbatim, !text.isEmpty else { return text }
-        let system = "\(guardrail)\n\nInstructions: \(mode.instructions)"
+        let system = RewritePrompt.system(instructions: mode.instructions)
 
         switch settings.optimizerBackend {
         case .off:
             throw TextOptimizerError.rewritingOff
         case .groq:
             guard let key = settings.groqAPIKey else { throw GroqError.missingAPIKey }
-            return try await optimizeWithGroq(text, system: system, key: key, model: settings.groqChatModel)
+            return try await optimizeWithGroq(text, system: system, key: key, mode: mode, settings: settings)
         case .apple:
             return try await optimizeWithApple(text, system: system, mode: mode)
         case .auto:
@@ -45,7 +46,7 @@ enum TextOptimizer {
                 return try await optimizeWithApple(text, system: system, mode: mode)
             }
             if let key = settings.groqAPIKey {
-                return try await optimizeWithGroq(text, system: system, key: key, model: settings.groqChatModel)
+                return try await optimizeWithGroq(text, system: system, key: key, mode: mode, settings: settings)
             }
             if isAppleModelAvailable { throw TextOptimizerError.appleLanguageUnsupported }
             throw TextOptimizerError.noEngine
@@ -62,9 +63,28 @@ enum TextOptimizer {
         }
     }
 
-    private static func optimizeWithGroq(_ text: String, system: String, key: String, model: String) async throws -> String {
-        let output = try await GroqClient(apiKey: key).complete(system: system, user: text, model: model)
-        return output.trimmingCharacters(in: .whitespacesAndNewlines)
+    /// Translation modes try the translation model first and fall back to the rewrite model, so a preview model
+    /// that is rate-limited, withdrawn or answers in the wrong language doesn't cost the user the translation.
+    private static func optimizeWithGroq(_ text: String, system: String, key: String, mode: DictationMode, settings: AppSettings) async throws -> String {
+        var models = [settings.groqChatModel]
+        if mode.isTranslation, !settings.groqTranslationModel.isEmpty, settings.groqTranslationModel != settings.groqChatModel {
+            models.insert(settings.groqTranslationModel, at: 0)
+        }
+        var failure: Error = TextOptimizerError.noEngine
+        for model in models {
+            do {
+                let reply = try await GroqClient(apiKey: key).complete(system: system, user: RewritePrompt.user(transcript: text), model: model)
+                let output = RewritePrompt.cleaned(reply)
+                if mode.expectsArabic, !RewritePrompt.isArabic(output) {
+                    failure = TextOptimizerError.notTranslated
+                    continue
+                }
+                return output
+            } catch {
+                failure = error
+            }
+        }
+        throw failure
     }
 
     static var isAppleModelAvailable: Bool {
@@ -113,8 +133,8 @@ enum TextOptimizer {
         #if canImport(FoundationModels)
         if #available(iOS 26.0, *), isAppleModelAvailable {
             let session = LanguageModelSession(instructions: system)
-            let response = try await session.respond(to: text)
-            return response.content.trimmingCharacters(in: .whitespacesAndNewlines)
+            let response = try await session.respond(to: RewritePrompt.user(transcript: text))
+            return RewritePrompt.cleaned(response.content)
         }
         #endif
         throw TextOptimizerError.appleModelUnavailable

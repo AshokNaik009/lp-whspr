@@ -9,6 +9,30 @@ struct DictationMode: Codable, Identifiable, Hashable {
 
     var isVerbatim: Bool { instructions.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
 
+    /// Changing the language is harder than tidying text, so these modes get the translation model.
+    var isTranslation: Bool { id == "arabic" || instructions.range(of: "translat", options: .caseInsensitive) != nil }
+
+    /// The built-in Arabic mode must come back in Arabic script, unless the user pointed it at another language.
+    var expectsArabic: Bool { id == "arabic" && instructions.range(of: "arabic", options: .caseInsensitive) != nil }
+
+    /// Instructions earlier versions shipped for built-in modes. A saved mode that still carries one of them
+    /// was never edited by the user, so it can take the current default.
+    static let retiredInstructions: [String: [String]] = [
+        "arabic": [
+            "Translate this dictated text into natural, fluent Modern Standard Arabic. Remove filler words and false starts, keep the meaning, names, numbers and tone. Keep product names such as Leap Whisper in their original form. Reply with the Arabic translation only.",
+        ],
+    ]
+
+    static func refreshingBuiltIns(_ saved: [DictationMode]) -> [DictationMode] {
+        saved.map { mode in
+            guard retiredInstructions[mode.id]?.contains(mode.instructions) == true,
+                  let current = defaults.first(where: { $0.id == mode.id }) else { return mode }
+            var refreshed = mode
+            refreshed.instructions = current.instructions
+            return refreshed
+        }
+    }
+
     static let defaults: [DictationMode] = [
         DictationMode(
             id: "raw", name: "Raw", symbol: "text.quote",
@@ -36,7 +60,7 @@ struct DictationMode: Codable, Identifiable, Hashable {
         ),
         DictationMode(
             id: "arabic", name: "To Arabic", symbol: "translate",
-            instructions: "Translate this dictated text into natural, fluent Modern Standard Arabic. Remove filler words and false starts, keep the meaning, names, numbers and tone. Keep product names such as Leap Whisper in their original form. Reply with the Arabic translation only."
+            instructions: "Translate the transcript into natural, fluent Modern Standard Arabic, written the way a native speaker would write it. Translate the meaning rather than word for word: express idioms and figures of speech by what they mean. Use correct Arabic grammar (gender and number agreement, hamza and ta marbuta spelling), Arabic punctuation (، ؛ ؟) and no diacritics. Leave out filler words and false starts, and keep the tone, the facts and the numbers. Write people's names in Arabic script and keep product and brand names such as Leap Whisper in their original form. If the transcript is already in Arabic, only correct it. Reply in Arabic only."
         ),
     ]
 }

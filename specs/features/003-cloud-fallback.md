@@ -18,7 +18,7 @@ to always use the cloud.
 | FR-003-4 | If the Groq call fails during fallback, the app shall keep the local text. |
 | FR-003-5 | The Groq key shall be stored in the Keychain, never in UserDefaults, source or logs. |
 | FR-003-6 | The result shall record which engine produced it, for example `Groq (local confidence 41%)`. |
-| FR-003-7 | The Groq transcription model (default `whisper-large-v3-turbo`) and rewrite model (default `openai/gpt-oss-20b`) shall be configurable. |
+| FR-003-7 | The Groq transcription model (default `whisper-large-v3-turbo`) and rewrite model (default `openai/gpt-oss-20b`) and translation model (default `qwen/qwen3.8-27b`) shall be configurable. |
 
 ## Acceptance criteria
 

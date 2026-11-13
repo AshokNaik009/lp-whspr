@@ -22,7 +22,7 @@ Notes, AI Prompt, To Arabic, custom) rewrite the transcript with Apple Intellige
                                                         │        │ ok                         │  │
 ┌─ LeapWidgets ──────────────────────┐  open / start    │        │                            ▼  │      ┌─ Groq API ─────────────┐
 │  Home & Lock Screen widgets        │ ───────────────▶ │        │                  GroqClient ──┼────▶ │ whisper-large-v3-turbo │
-│  Control Center control            │                  │        ▼                     (WAV)     │      │ gpt-oss-20b (rewrite)  │
+│  Control Center control            │                  │        ▼                     (WAV)     │      │ gpt-oss-20b / qwen3.8  │
 │  Siri / Action Button intent       │                  │  TextOptimizer  mode rewrite/translate │      └────────────────────────┘
 └────────────────────────────────────┘                  │   Automatic: Apple Intelligence        │
                                                         │   on-device, else Groq LLM             │
@@ -90,7 +90,9 @@ shortcut ("Dictate with Leap Whisper").
 1. On-device whisper.cpp with the selected ggml model. Confidence is the mean token probability.
 2. If confidence < the threshold (default 55%), no model is installed, or local inference fails, and
    a Groq key is set, the WAV is re-sent to Groq `whisper-large-v3-turbo`.
-3. The selected mode rewrites the text (or it is inserted verbatim).
+3. The selected mode rewrites the text (or it is inserted verbatim). Rewrites use Groq `openai/gpt-oss-20b`;
+   modes that translate (To Arabic) use `qwen/qwen3.8-27b` and fall back to the rewrite model. The transcript is
+   sent inside `<transcript>` tags so a dictation that sounds like a request is transformed, not answered.
 
 GPU (Metal) and beam search are used while the app is in the foreground. Background (keyboard) transcriptions
 use the CPU with greedy decoding, because iOS blocks GPU work from background apps and beam search on the CPU is
