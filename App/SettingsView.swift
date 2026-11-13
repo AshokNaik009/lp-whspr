@@ -29,6 +29,11 @@ struct SettingsView: View {
                     } label: {
                         Label("App guide", systemImage: "book.fill")
                     }
+                    NavigationLink {
+                        StartLogView()
+                    } label: {
+                        Label("Start log", systemImage: "list.bullet.rectangle")
+                    }
                 }
 
                 Section {
@@ -129,5 +134,25 @@ struct SettingsView: View {
             .themedBackground()
             .navigationTitle("Settings")
         }
+    }
+}
+
+/// How recent Action Button and Control Center starts went: in place, or by opening the app, and why (spec 009).
+private struct StartLogView: View {
+    @State private var entries = SharedStore.startLog
+
+    var body: some View {
+        List {
+            if entries.isEmpty {
+                Text("Nothing yet. Press the Action Button or the Leap Whisper control in Control Center, then come back.")
+                    .foregroundStyle(.secondary)
+            }
+            ForEach(Array(entries.reversed().enumerated()), id: \.offset) { _, entry in
+                Text(entry).font(.jakarta(.footnote)).textSelection(.enabled)
+            }
+        }
+        .themedBackground()
+        .navigationTitle("Start log")
+        .onAppear { entries = SharedStore.startLog }
     }
 }

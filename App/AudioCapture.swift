@@ -11,6 +11,7 @@ final class AudioCapture {
     private let lock = NSLock()
     private var samples: [Float] = []
     private var recording = false
+    private var audioSeen = false
     private var lastTick = Date.distantPast
 
     /// Called roughly once per second from the audio thread while the engine runs.
@@ -39,8 +40,26 @@ final class AudioCapture {
         input.installTap(onBus: 0, bufferSize: 4096, format: inputFormat) { [weak self] buffer, _ in
             self?.handle(buffer)
         }
+        lock.lock()
+        audioSeen = false
+        lock.unlock()
         engine.prepare()
         try engine.start()
+    }
+
+    /// A background start can succeed and still deliver nothing, so wait for the first buffer.
+    func waitForAudio(timeout: TimeInterval) async -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            if hasAudio { return true }
+            try? await Task.sleep(for: .milliseconds(50))
+        }
+        return hasAudio
+    }
+
+    private var hasAudio: Bool {
+        lock.lock(); defer { lock.unlock() }
+        return audioSeen
     }
 
     func stopEngine() {
@@ -78,6 +97,9 @@ final class AudioCapture {
     }
 
     private func handle(_ buffer: AVAudioPCMBuffer) {
+        lock.lock()
+        audioSeen = true
+        lock.unlock()
         let now = Date()
         if now.timeIntervalSince(lastTick) >= 1 {
             lastTick = now

@@ -7,6 +7,7 @@ struct LeapWidgetBundle: WidgetBundle {
     var body: some Widget {
         DictateWidget()
         DictateControl()
+        DictationLiveActivity()
     }
 }
 
@@ -62,11 +63,11 @@ struct DictateWidgetView: View {
 struct DictateControl: ControlWidget {
     var body: some ControlWidgetConfiguration {
         StaticControlConfiguration(kind: "LeapWhisperDictateControl") {
-            ControlWidgetButton(action: StartDictationIntent()) {
+            ControlWidgetButton(action: ToggleDictationIntent()) {
                 Label("Leap Whisper", systemImage: "waveform")
             }
         }
         .displayName("Leap Whisper")
-        .description("Start dictation.")
+        .description("Start or stop a dictation.")
     }
 }

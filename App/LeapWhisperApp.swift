@@ -14,6 +14,10 @@ struct LeapWhisperApp: App {
         navigationBar.titleTextAttributes = [.font: UIFont.jakarta(size: 17, .semibold)]
         UITabBarItem.appearance().setTitleTextAttributes([.font: UIFont.jakarta(size: 10, .medium)], for: .normal)
         UISegmentedControl.appearance().setTitleTextAttributes([.font: UIFont.jakarta(size: 13, .medium)], for: .normal)
+        // Set before the system performs an intent on a background launch, which never builds the scene.
+        DictationIntentBridge.toggle = { await DictationController.shared.toggleFromIntent() }
+        DictationIntentBridge.cancel = { DictationController.shared.cancelRecording() }
+        DictationIntentBridge.micOff = { DictationController.shared.turnMicOffFromIntent() }
     }
 
     var body: some Scene {
@@ -34,8 +38,8 @@ struct LeapWhisperApp: App {
 struct LeapWhisperShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
         AppShortcut(
-            intent: StartDictationIntent(),
-            phrases: ["Dictate with \(.applicationName)", "Start \(.applicationName)"],
+            intent: ToggleDictationIntent(),
+            phrases: ["Dictate with \(.applicationName)", "Start \(.applicationName)", "Stop \(.applicationName)"],
             shortTitle: "Dictate",
             systemImageName: "waveform"
         )

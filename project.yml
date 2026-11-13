@@ -50,6 +50,7 @@ targets:
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         LeapAppGroup: $(LEAP_APP_GROUP)
         NSMicrophoneUsageDescription: Leap Whisper records your voice so it can be transcribed into text.
+        NSSupportsLiveActivities: true
         UIBackgroundModes: [audio]
         UIAppFonts: &fonts
           - PlusJakartaSans-Regular.ttf

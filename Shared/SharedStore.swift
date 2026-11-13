@@ -47,6 +47,7 @@ enum SharedStore {
         static let recentHistory = "history.recent"
         static let keyboardBackground = "keyboard.background"
         static let micStandby = "session.micStandby"
+        static let startLog = "diagnostics.startLog"
     }
 
     /// The app refreshes the heartbeat from its audio tap while a background session is running.
@@ -76,6 +77,13 @@ enum SharedStore {
     static var micStandby: MicStandby {
         get { MicStandby(stored: defaults.object(forKey: Key.micStandby) as? Int) }
         set { defaults.set(newValue.rawValue, forKey: Key.micStandby) }
+    }
+
+    /// How recent "Dictate" presses were started, newest last (spec 009, FR-009-8).
+    static var startLog: [String] { defaults.stringArray(forKey: Key.startLog) ?? [] }
+
+    static func logStart(_ entry: String) {
+        defaults.set(StartLog.appending(entry, to: startLog), forKey: Key.startLog)
     }
 
     static var state: DictationState {

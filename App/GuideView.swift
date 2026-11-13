@@ -140,6 +140,18 @@ struct GuideTopic: Identifiable {
             tip: "iOS doesn't let keyboards use the mic, and only lets an app start it while that app is on screen. So Leap Whisper opens once, then keeps the mic ready (iOS shows the orange dot). Change how long in Settings > Keyboard dictation: longer means fewer trips to the app, Off means the dot only shows while you dictate."
         ),
         GuideTopic(
+            id: "action", icon: "button.programmable", tint: .orange, title: "Dictate from the Action Button",
+            summary: "Start talking from any app, without opening Leap Whisper.",
+            steps: [
+                "Settings > Action Button > Shortcut > Choose a Shortcut > Leap Whisper > Dictate.",
+                "Or add the control: open Control Center, touch and hold, Add a Control, search for Leap Whisper.",
+                "Press and hold the Action Button. A timer appears in the Dynamic Island: you're recording.",
+                "Stop with ■ on the Leap Whisper keyboard, by pressing the Action Button again, or by holding the Dynamic Island and tapping Stop.",
+                "If the Leap Whisper keyboard wasn't open, open it and tap Insert.",
+            ],
+            tip: "iOS doesn't always let an app start the microphone in the background. When it refuses, Leap Whisper opens to start it. Settings > Help > Start log shows what happened each time."
+        ),
+        GuideTopic(
             id: "modes", icon: "dial.medium.fill", tint: .pink, title: "Modes and the dial",
             summary: "Choose how your words get rewritten.",
             steps: [

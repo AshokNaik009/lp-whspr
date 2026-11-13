@@ -30,6 +30,13 @@ xcrun devicectl device copy from --device <UDID> --domain-type appDataContainer 
   --source "Library/Application Support/history.json" --destination /tmp/history.json
 ```
 
+Settings, the saved modes and the Action Button start log (`diagnostics.startLog`) are in the App Group preferences:
+
+```bash
+xcrun devicectl device copy from --device <UDID> --domain-type appGroupDataContainer --domain-identifier <app group> \
+  --source "Library/Preferences/<app group>.plist" --destination /tmp/group.plist
+```
+
 The Groq key lives in the phone's Keychain, so rewrite and translation models can't be called from the Mac unless
 `GROQ_API_KEY` is exported in the shell.
 

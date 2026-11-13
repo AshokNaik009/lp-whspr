@@ -6,6 +6,22 @@ recording on and off and types the transcript into any app. Transcription runs o
 for low-confidence results, or it can be the main engine. Optimization modes (Clean, Message, Email,
 Notes, AI Prompt, To Arabic, custom) rewrite the transcript with Apple Intelligence (on-device) or a Groq LLM.
 
+## Features
+
+- **Dictate into any app** from the Leap Whisper keyboard: tap the mic, speak, tap again, and the text is typed
+  at the cursor. Words appear live while you speak.
+- **Mic stays ready** after a dictation (15 minutes by default), so the next taps record in place without opening
+  the app. A mic-off button on the keyboard ends it early.
+- **Action Button, Control Center and Siri**: one "Dictate" action starts and stops a dictation. It tries to start
+  without opening the app and opens it when iOS refuses.
+- **Dynamic Island and Lock Screen**: a Live Activity shows recording with a timer, transcribing, or mic ready, with
+  Stop, Cancel, Dictate and Mic off buttons.
+- **Insert chip**: a dictation that finishes while the keyboard isn't on screen is offered the next time it opens.
+- **Modes**: Raw, Clean, Message, Email, Notes, AI Prompt, To Arabic and your own. To Arabic uses a separate
+  translation model (Qwen 3.8 27B on Groq by default).
+- **On-device first**: whisper.cpp models run on the iPhone. Groq is optional, as a fallback or as the main engine.
+- **History and stats** kept on the device, with the last 50 dictations available from the keyboard.
+
 ## Architecture
 
 ```
@@ -23,7 +39,7 @@ Notes, AI Prompt, To Arabic, custom) rewrite the transcript with Apple Intellige
 ┌─ LeapWidgets ──────────────────────┐  open / start    │        │                            ▼  │      ┌─ Groq API ─────────────┐
 │  Home & Lock Screen widgets        │ ───────────────▶ │        │                  GroqClient ──┼────▶ │ whisper-large-v3-turbo │
 │  Control Center control            │                  │        ▼                     (WAV)     │      │ gpt-oss-20b / qwen3.8  │
-│  Siri / Action Button intent       │                  │  TextOptimizer  mode rewrite/translate │      └────────────────────────┘
+│  Action Button, Siri, Live Activity│                  │  TextOptimizer  mode rewrite/translate │      └────────────────────────┘
 └────────────────────────────────────┘                  │   Automatic: Apple Intelligence        │
                                                         │   on-device, else Groq LLM             │
 ┌─ On device ────────────────────────┐                  │        │                               │
@@ -52,12 +68,15 @@ corners, no gradients) and **System**, which follows the iPhone's light/dark set
   up when a dictation starts or finishes), then a rotary mode dial (drag to turn; it snaps with a haptic tick to Raw, Clean,
   Message, Email, Notes, AI Prompt, To Arabic or a custom mode).
 - **Keyboard:** mode chips, gradient orb mic with pulse rings, cancel and timer while recording, a glass strip
-  with the live words, and a clock key that shows recent dictations to re-insert. Settings > Keyboard background
+  with the live words, a mic-off button while the mic is ready, an Insert chip for a dictation that finished while
+  the keyboard was away, and a clock key that shows recent dictations to re-insert. Settings > Keyboard background
   sets a gradient: Default, six presets, or a custom two-colour gradient.
+- **Dynamic Island:** a waveform and running timer while recording, then transcribing and mic ready. Touch and hold
+  it for the buttons.
 - **History, Stats, Models, Settings:** standard iOS lists (to be restyled). Models shows the recommended
   Large v3 Turbo, per-model size and a delete button.
 - **Onboarding:** a guided setup for downloading a model, adding the keyboard, Full Access and a practice field.
-- **App guide:** Settings > Help > App guide has step-by-step how-tos for dictation, the keyboard, modes, Groq, models, history, keyboard backgrounds and recording a demo.
+- **App guide:** Settings > Help > App guide has step-by-step how-tos for dictation, the keyboard, the Action Button, modes, Groq, models, history, keyboard backgrounds and recording a demo.
 
 ## How the keyboard dictates
 
@@ -82,8 +101,24 @@ Why it works this way, with sources: [ADR-0002](specs/decisions/0002-keep-mic-re
 
 The keyboard needs **Allow Full Access** to reach the shared App Group.
 
-Other entry points: Home Screen and Lock Screen widgets, a Control Center control, and a Siri or Action Button
-shortcut ("Dictate with Leap Whisper").
+Home Screen and Lock Screen widgets open the app and start a dictation there.
+
+## Starting from the Action Button or Control Center
+
+The "Dictate" action (Settings > Action Button > Shortcut > Leap Whisper > Dictate, or the Leap Whisper control in
+Control Center, or "Dictate with Leap Whisper" to Siri) starts a dictation and stops the one in progress.
+
+1. iOS only lets an app record from the background through an `AudioRecordingIntent` with a Live Activity, so the
+   action shows the Live Activity first, then starts the audio session and waits for audio to arrive.
+2. If iOS refuses any of that, the action undoes what it started and opens the app, which starts the dictation in
+   the foreground. That is the same result as before this feature existed.
+3. Stop from the keyboard, the Action Button, or the Stop button in the expanded Dynamic Island.
+4. If no Leap Whisper keyboard is on screen when the text is ready, the keyboard offers it as an Insert chip for
+   the next 10 minutes.
+
+A background start is not guaranteed. On the first try on an iPhone 17 Pro with iOS 26.6 the audio session was
+refused (`'!pri'`, insufficient priority) and the app opened. Settings > Help > Start log records how each press
+went and why. Details and open questions: [spec 009](specs/features/009-background-start.md).
 
 ## Transcription pipeline
 
@@ -129,7 +164,9 @@ numbered requirements and acceptance criteria, live in [`specs/`](specs/README.m
 - **Calibration** (Models tab or Settings): read a reference sentence once. Every installed model, plus Groq if a key is saved,
   transcribes the same recording. Results show accuracy (1 − word error rate), latency and confidence. You can apply the recommended
   engine and a suggested fallback threshold with one tap.
-- **Settings**: on-device or Groq (online) engine, language, vocabulary, cloud fallback and threshold, optimizer, modes, Groq key.
+- **Settings**: on-device or Groq (online) engine, language, vocabulary, cloud fallback and threshold, optimizer, modes,
+  Groq key and its transcription, rewrite and translation models, how long the mic stays ready, appearance, and the
+  app guide and start log under Help.
 
 ## Build
 
@@ -252,9 +289,11 @@ binary; for a wide beta or the App Store, put Groq behind a small proxy (see [Se
 
 ```
 App/        SwiftUI app: DictationController (session + pipeline), AudioCapture, WhisperEngine, GroqClient,
-            TextOptimizer, ModelManager, views, App Shortcuts
+            TextOptimizer, DictationActivity (Live Activity), ModelManager, views, App Shortcuts
 Keyboard/   UIInputViewController + SwiftUI dictation keyboard
-Widgets/    Home/Lock Screen widget and Control Center control
-Shared/     App Group store, Darwin notifications, modes, StartDictationIntent
+Widgets/    Home/Lock Screen widget, Control Center control and the Live Activity views
+Shared/     App Group store, Darwin notifications, intents (Shared/Intents), tested logic (Shared/Core)
+Tests/      Unit tests for Shared/Core, run with `swift test`
+specs/      Product spec, architecture, decision records and one spec per feature
 Packages/   whisper.cpp xcframework (SwiftPM binary target)
 ```

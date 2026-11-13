@@ -252,3 +252,29 @@ final class DictationModeTests: XCTestCase {
         XCTAssertNotEqual(builtIn("arabic").instructions, retired)
     }
 }
+
+final class TranscriptDeliveryTests: XCTestCase {
+    // AC-009-4
+    func testMissedDictationIsOfferedForTenMinutes() {
+        let now = Date()
+        XCTAssertTrue(TranscriptDelivery.isOffered(createdAt: now.addingTimeInterval(-599), alreadyInserted: false, now: now))
+        XCTAssertFalse(TranscriptDelivery.isOffered(createdAt: now.addingTimeInterval(-600), alreadyInserted: false, now: now))
+        XCTAssertFalse(TranscriptDelivery.isOffered(createdAt: now.addingTimeInterval(-5), alreadyInserted: true, now: now))
+    }
+
+    func testAudioErrorCodesReadAsFourCharacters() {
+        XCTAssertEqual(StartLog.fourCharacterCode(561145187), "!rec")
+        XCTAssertEqual(StartLog.fourCharacterCode(2003329396), "what")
+        XCTAssertEqual(StartLog.fourCharacterCode(560557684), "!int")
+        XCTAssertNil(StartLog.fourCharacterCode(-50))
+        XCTAssertEqual(StartLog.describe(NSError(domain: "com.apple.coreaudio.avfaudio", code: 561145187)), "'!rec' com.apple.coreaudio.avfaudio 561145187")
+    }
+
+    func testStartLogKeepsTheNewestTwentyEntries() {
+        var log: [String] = []
+        for i in 1...25 { log = StartLog.appending("start \(i)", to: log) }
+        XCTAssertEqual(log.count, 20)
+        XCTAssertEqual(log.first, "start 6")
+        XCTAssertEqual(log.last, "start 25")
+    }
+}

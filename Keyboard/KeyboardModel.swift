@@ -16,6 +16,8 @@ final class KeyboardModel: ObservableObject {
     @Published var background = SharedStore.keyboardBackground
     @Published var history: [RecentDictation] = []
     @Published var micStandby = SharedStore.micStandby
+    /// A dictation that finished while this keyboard wasn't on screen, waiting for the user to place it.
+    @Published var offeredTranscript: TranscriptPayload?
 
     private weak var controller: KeyboardViewController?
     private var tokens: [UUID] = []
@@ -69,6 +71,23 @@ final class KeyboardModel: ObservableObject {
         if storedBackground != background { background = storedBackground }
         let storedStandby = SharedStore.micStandby
         if storedStandby != micStandby { micStandby = storedStandby }
+        let offered = SharedStore.transcript.flatMap { transcript in
+            let inserted = AppGroup.defaults.string(forKey: Self.lastInsertedKey) == transcript.id.uuidString
+            return TranscriptDelivery.isOffered(createdAt: transcript.createdAt, alreadyInserted: inserted) ? transcript : nil
+        }
+        if offered?.id != offeredTranscript?.id { offeredTranscript = offered }
+    }
+
+    func insertOffered() {
+        guard let transcript = offeredTranscript else { return }
+        dismissOffered()
+        insert(transcript.text)
+    }
+
+    func dismissOffered() {
+        guard let transcript = offeredTranscript else { return }
+        AppGroup.defaults.set(transcript.id.uuidString, forKey: Self.lastInsertedKey)
+        offeredTranscript = nil
     }
 
     /// The mic is on and waiting, so a tap records right here without opening the app.
@@ -168,6 +187,7 @@ final class KeyboardModel: ObservableObject {
               Date().timeIntervalSince(transcript.createdAt) < 60
         else { return }
         AppGroup.defaults.set(transcript.id.uuidString, forKey: Self.lastInsertedKey)
+        offeredTranscript = nil
         insert(transcript.text)
     }
 

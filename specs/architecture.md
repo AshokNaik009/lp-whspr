@@ -6,7 +6,7 @@
 | --- | --- | --- |
 | `LeapWhisper` | App | Microphone session, whisper.cpp inference, Groq client, optimization, history and stats, models, settings |
 | `LeapKeyboard` | Keyboard extension | Mode chips, mic toggle, text insertion. No audio and no ML. |
-| `LeapWidgets` | WidgetKit extension | Home Screen and Lock Screen widget, Control Center control |
+| `LeapWidgets` | WidgetKit extension | Home Screen and Lock Screen widget, Control Center control, Live Activity |
 
 Shared code in `Shared/` is compiled into all three targets: App Group storage, Darwin notifications, modes and the intent.
 

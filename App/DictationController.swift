@@ -22,12 +22,16 @@ final class DictationController: ObservableObject {
 
     private let capture = AudioCapture()
     private let settings = AppSettings.shared
+    private let activity = DictationActivity()
     private var currentModeID: String?
     private var lastCommandID: UUID?
     private var lastActivity = Date()
+    private var recordingStartedAt = Date()
+    private var micOffWhenDone = false
     private var idleTimer: Timer?
 
     private init() {
+        activity.onDismissed = { DictationController.shared.liveActivityDismissed() }
         capture.onTick = {
             SharedStore.touchHeartbeat()
             Task { @MainActor in DictationController.shared.checkIdleTimeout() }
@@ -95,6 +99,89 @@ final class DictationController: ObservableObject {
         }
     }
 
+    // MARK: Action Button, Control Center and the Live Activity (spec 009)
+
+    /// A press of "Dictate": stops the recording in progress, or starts one where the app is.
+    func toggleFromIntent() async -> DictationToggleResult {
+        switch state {
+        case .recording:
+            guard !isCalibrating else { return .busy }
+            stopRecording()
+            return .stopped
+        case .transcribing:
+            return .busy
+        case .idle, .error:
+            break
+        }
+        let place = UIApplication.shared.applicationState == .active ? "app in front" : "app in the background"
+        let micWasReady = capture.isRunning
+        let stamp = Date().formatted(date: .abbreviated, time: .standard)
+        if let refusal = await startInPlace() {
+            SharedStore.logStart("\(stamp): opened the app (\(place)). \(refusal)")
+            return .needsApp
+        }
+        SharedStore.logStart("\(stamp): started in place (\(place)\(micWasReady ? ", mic was ready" : ", mic was off"))")
+        return .started
+    }
+
+    /// Starts recording without bringing the app forward. Returns what iOS refused, or nil once audio is flowing.
+    private func startInPlace() async -> String? {
+        if !capture.isRunning {
+            guard AVAudioApplication.shared.recordPermission == .granted else { return "Microphone permission hasn't been granted yet." }
+            let inFront = UIApplication.shared.applicationState == .active
+            // iOS stops a background recording that has no Live Activity, so the activity comes first.
+            recordingStartedAt = Date()
+            guard activity.show(.init(phase: .recording, since: recordingStartedAt)) || inFront else {
+                return "Live Activity refused: \(activity.lastError ?? "no reason given")"
+            }
+            do {
+                try capture.startEngine()
+            } catch {
+                capture.stopEngine()
+                activity.end()
+                return "Microphone refused: \(StartLog.describe(error as NSError))"
+            }
+            guard await capture.waitForAudio(timeout: 1) else {
+                capture.stopEngine()
+                activity.end()
+                return "The microphone started but no audio arrived."
+            }
+            sessionStarted()
+        }
+        startRecording(modeID: nil)
+        return state == .recording ? nil : "Recording didn't start."
+    }
+
+    func turnMicOffFromIntent() {
+        guard state != .recording, state != .transcribing else { return }
+        endSession()
+    }
+
+    /// The Live Activity was swiped away or ended by iOS, which also ends permission to record in the background.
+    private func liveActivityDismissed() {
+        switch state {
+        case .recording:
+            micOffWhenDone = true
+            stopRecording()
+        case .transcribing:
+            micOffWhenDone = true
+        case .idle, .error:
+            endSession()
+        }
+    }
+
+    /// The Live Activity mirrors the microphone: up while it is on, gone when it is off.
+    private func syncActivity() {
+        guard capture.isRunning else { return activity.end() }
+        let phase: DictationActivityAttributes.ContentState.Phase
+        switch state {
+        case .recording: phase = .recording
+        case .transcribing: phase = .transcribing
+        case .idle, .error: phase = .ready
+        }
+        activity.show(.init(phase: phase, since: recordingStartedAt))
+    }
+
     // MARK: Session
 
     @discardableResult
@@ -109,17 +196,21 @@ final class DictationController: ObservableObject {
         }
         do {
             try capture.startEngine()
-            isSessionActive = true
-            lastActivity = Date()
-            SharedStore.touchHeartbeat()
-            SharedStore.publish(state: .idle, message: nil)
-            update(state: .idle)
-            preloadModel()
+            sessionStarted()
             return true
         } catch {
             fail("Couldn't start the microphone: \(error.localizedDescription)")
             return false
         }
+    }
+
+    private func sessionStarted() {
+        isSessionActive = true
+        lastActivity = Date()
+        SharedStore.touchHeartbeat()
+        SharedStore.publish(state: .idle, message: nil)
+        update(state: .idle)
+        preloadModel()
     }
 
     func endSession(reason: String? = nil) {
@@ -139,13 +230,15 @@ final class DictationController: ObservableObject {
         isSessionActive = false
         level = 0
         SharedStore.clearHeartbeat()
+        syncActivity()
     }
 
     /// A dictation just ended: keep the mic ready for the standby window so the next keyboard tap records
     /// without opening the app, or switch it off straight away when standby is off.
     private func finishDictation() {
         lastActivity = Date()
-        if !settings.micStandby.keepsMicAfterDictation { closeMic() }
+        if micOffWhenDone || !settings.micStandby.keepsMicAfterDictation { closeMic() }
+        micOffWhenDone = false
     }
 
     private func checkIdleTimeout() {
@@ -179,6 +272,7 @@ final class DictationController: ObservableObject {
         guard capture.isRunning, state != .recording, state != .transcribing else { return }
         currentModeID = modeID ?? SharedStore.selectedModeID
         lastActivity = Date()
+        recordingStartedAt = Date()
         capture.beginRecording()
         update(state: .recording)
         startLiveTranscription()
@@ -368,6 +462,7 @@ final class DictationController: ObservableObject {
         state = newState
         statusMessage = message
         SharedStore.publish(state: newState, message: message)
+        syncActivity()
     }
 
     private func fail(_ message: String) {

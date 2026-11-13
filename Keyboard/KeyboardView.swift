@@ -171,7 +171,9 @@ struct KeyboardView: View {
             } else if isTranscribing {
                 Image(systemName: "sparkles").foregroundStyle(KeyboardTheme.accent)
             }
-            if let live = model.liveText, !live.isEmpty, model.hint == nil, !isTranscribing {
+            if let offered = model.offeredTranscript, model.state == .idle, model.hint == nil {
+                offerChip(offered)
+            } else if let live = model.liveText, !live.isEmpty, model.hint == nil, !isTranscribing {
                 Text(live)
                     .font(.jakarta(.subheadline))
                     .foregroundStyle(isTranscribing ? Color.secondary : Color.primary)
@@ -205,6 +207,35 @@ struct KeyboardView: View {
                     .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Color.primary.opacity(0.08)))
                     .transition(.opacity)
             }
+        }
+    }
+
+    private func offerChip(_ transcript: TranscriptPayload) -> some View {
+        HStack(spacing: 8) {
+            Button(action: model.insertOffered) {
+                HStack(spacing: 8) {
+                    Image(systemName: "arrow.down.to.line").font(.jakarta(.footnote, .bold))
+                    Text("Insert: \(transcript.text)")
+                        .font(.jakarta(.footnote, .medium))
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                }
+                .foregroundStyle(.white)
+                .padding(.horizontal, 12).padding(.vertical, 8)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(KeyboardTheme.idleGradient, in: Capsule())
+            }
+            .buttonStyle(KeyPressStyle())
+            .accessibilityLabel("Insert last dictation")
+            Button(action: model.dismissOffered) {
+                Image(systemName: "xmark")
+                    .font(.jakarta(size: 11, weight: .bold))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 28, height: 28)
+                    .background(.ultraThinMaterial, in: Circle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Dismiss")
         }
     }
 
