@@ -65,13 +65,20 @@ iOS does not let keyboard extensions use the microphone, so the app owns the mic
 
 1. The first mic tap in the keyboard opens Leap Whisper (`leapwhisper://session?start=1`). The app starts
    an `AVAudioEngine` session with the `audio` background mode and begins recording.
-2. The app jumps back to the host app (or the user taps the ◀ breadcrumb). The engine keeps running in the
-   background while recording and transcribing, so the app stays alive.
+2. The app jumps back to the host app when it knows which one it was. Since iOS 26.4 a keyboard can no longer
+   identify its host, so the user swipes right along the bottom edge instead. The engine keeps running in the
+   background, so the app stays alive.
 3. The keyboard's stop tap sends a `stop` command over Darwin notifications and the App Group. The app
    transcribes, applies the selected mode and publishes the text. The keyboard inserts it via `textDocumentProxy`.
-4. As soon as the text is published (or the recording is cancelled), the app stops the engine, so iOS's orange
-   mic indicator only shows while you're actually dictating. The next keyboard tap opens the app again;
-   iOS won't let a backgrounded app restart the microphone.
+4. The engine then stays on for the standby window (Settings > Keyboard dictation > Keep mic ready: Off, 5 minutes,
+   15 minutes by default, 1 hour, or until turned off). During that window every keyboard tap starts and stops
+   recording in place, with no app switch, and iOS shows its orange mic indicator. The small mic-off button on the
+   keyboard ends the window early.
+5. When the window ends the app stops the engine. iOS won't let a backgrounded app start the microphone, so the
+   next keyboard tap opens the app again. With Off, that happens after every dictation.
+
+The microphone is always the iPhone's own, so connected AirPods keep playing in stereo while the mic is ready.
+Why it works this way, with sources: [ADR-0002](specs/decisions/0002-keep-mic-ready-window.md).
 
 The keyboard needs **Allow Full Access** to reach the shared App Group.
 

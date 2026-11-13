@@ -15,10 +15,12 @@ final class KeyboardModel: ObservableObject {
     @Published var showingHistory = false
     @Published var background = SharedStore.keyboardBackground
     @Published var history: [RecentDictation] = []
+    @Published var micStandby = SharedStore.micStandby
 
     private weak var controller: KeyboardViewController?
     private var tokens: [UUID] = []
     private var pollTimer: Timer?
+    private var unconfirmedStart: UUID?
 
     private static let lastInsertedKey = "keyboard.lastInsertedTranscript"
 
@@ -65,7 +67,12 @@ final class KeyboardModel: ObservableObject {
         selectedModeID = SharedStore.selectedModeID
         let storedBackground = SharedStore.keyboardBackground
         if storedBackground != background { background = storedBackground }
+        let storedStandby = SharedStore.micStandby
+        if storedStandby != micStandby { micStandby = storedStandby }
     }
+
+    /// The mic is on and waiting, so a tap records right here without opening the app.
+    var micIsReady: Bool { sessionAlive && (state == .idle || state == .error) }
 
     func select(_ mode: DictationMode) {
         selectedModeID = mode.id
@@ -74,6 +81,7 @@ final class KeyboardModel: ObservableObject {
 
     func micTapped() {
         hint = nil
+        unconfirmedStart = nil
         guard hasFullAccess else {
             hint = "Turn on Allow Full Access for Leap Whisper in Settings > General > Keyboard."
             return
@@ -88,17 +96,49 @@ final class KeyboardModel: ObservableObject {
             if sessionAlive {
                 SharedStore.send(DictationCommand(kind: .start, modeID: selectedModeID))
                 state = .recording
+                openAppIfStartIsMissed()
             } else {
-                var components = URLComponents(url: AppGroup.sessionURL(startWithMode: selectedModeID), resolvingAgainstBaseURL: false)!
-                components.queryItems?.append(URLQueryItem(name: "source", value: "keyboard"))
-                if let host = controller?.hostBundleID {
-                    components.queryItems?.append(URLQueryItem(name: "host", value: host))
-                }
-                if controller?.openContainingApp(components.url!) != true {
-                    hint = "Open the Leap Whisper app once to start a session."
-                }
+                openAppToStart()
             }
         }
+    }
+
+    private func openAppToStart() {
+        var components = URLComponents(url: AppGroup.sessionURL(startWithMode: selectedModeID), resolvingAgainstBaseURL: false)!
+        components.queryItems?.append(URLQueryItem(name: "source", value: "keyboard"))
+        if let host = controller?.hostBundleID {
+            components.queryItems?.append(URLQueryItem(name: "host", value: host))
+        }
+        if controller?.openContainingApp(components.url!) != true {
+            hint = "Open the Leap Whisper app once to start a session."
+        }
+    }
+
+    /// iOS can end the app between two heartbeats, and a Darwin notification can get lost. Ring again twice
+    /// (the app ignores a command it has already handled), then open the app instead of leaving the tap unanswered.
+    private func openAppIfStartIsMissed() {
+        let attempt = UUID()
+        unconfirmedStart = attempt
+        Task { @MainActor [weak self] in
+            for check in 1...3 {
+                try? await Task.sleep(for: .milliseconds(500))
+                guard let self, self.unconfirmedStart == attempt else { return }
+                let appState = SharedStore.state
+                if appState == .recording || appState == .transcribing { break }
+                if check < 3 {
+                    DarwinNotifier.shared.post(.command)
+                } else {
+                    self.openAppToStart()
+                }
+            }
+            if self?.unconfirmedStart == attempt { self?.unconfirmedStart = nil }
+        }
+    }
+
+    /// Turns the mic (and the orange indicator) off without waiting for the standby window to run out.
+    func micOffTapped() {
+        unconfirmedStart = nil
+        SharedStore.send(DictationCommand(kind: .end))
     }
 
     func toggleHistory() {
@@ -117,6 +157,7 @@ final class KeyboardModel: ObservableObject {
     }
 
     func cancelTapped() {
+        unconfirmedStart = nil
         SharedStore.send(DictationCommand(kind: .cancel))
     }
 

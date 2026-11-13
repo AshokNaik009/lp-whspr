@@ -31,9 +31,14 @@ sequenceDiagram
     G-->>K: insert via textDocumentProxy
 ```
 
-The app stops the engine as soon as each dictation is published or cancelled, so the orange mic indicator never shows while
-idle. Because iOS won't let a backgrounded app restart the microphone, every new dictation from the keyboard opens the app
-briefly; it starts recording and returns to the host app. `sessionTimeoutMinutes` remains only as a safety net.
+After a dictation the engine stays on for the standby window (`MicStandby`: off, 5 minutes, 15 minutes by default, 1 hour or
+always). While it's on, keyboard taps send `start`/`stop` through the App Group and no app switch happens; iOS shows the orange
+mic indicator for the whole window. The keyboard's mic-off button sends `end` to stop the engine early. Once the engine has
+stopped, iOS won't let the backgrounded app start the microphone again, so the next keyboard tap opens the app. With standby
+off the engine stops after every dictation. See [ADR-0002](decisions/0002-keep-mic-ready-window.md).
+
+If a `start` isn't picked up (the app died between two heartbeats, or the notification was lost), the keyboard re-posts the
+notification twice and then, after 1.5 s, opens the app.
 
 ## Pipeline
 

@@ -133,10 +133,11 @@ struct GuideTopic: Identifiable {
                 "Settings > General > Keyboard > Keyboards > Add New Keyboard > Leap Whisper.",
                 "Tap Leap Whisper in that list and turn on Allow Full Access.",
                 "In any app, long-press the globe key and choose Leap Whisper.",
-                "Tap the mic. The first time, Leap Whisper opens to start the microphone and jumps back by itself. If it doesn't, tap ◀ in the top-left corner.",
+                "Tap the mic. The first time, Leap Whisper opens to start the microphone. If it doesn't jump back by itself, swipe right along the bottom edge of the screen, and keep talking.",
                 "Speak, then tap ■. The text is typed straight into the app.",
+                "The mic then stays ready (15 minutes by default), so every tap records right where you are. Tap the small crossed-out mic on the keyboard to switch it off sooner.",
             ],
-            tip: "iOS doesn't let keyboards use the mic, so each tap briefly opens Leap Whisper to start it, then jumps back. The mic (and the orange dot) switches off as soon as your text is inserted."
+            tip: "iOS doesn't let keyboards use the mic, and only lets an app start it while that app is on screen. So Leap Whisper opens once, then keeps the mic ready (iOS shows the orange dot). Change how long in Settings > Keyboard dictation: longer means fewer trips to the app, Off means the dot only shows while you dictate."
         ),
         GuideTopic(
             id: "modes", icon: "dial.medium.fill", tint: .pink, title: "Modes and the dial",

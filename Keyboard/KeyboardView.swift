@@ -80,18 +80,33 @@ struct KeyboardView: View {
 
     private var controls: some View {
         HStack {
-            sideSlot { cancelButton }
+            sideSlot(visible: isRecording) { cancelButton }
             Spacer()
             micOrb
             Spacer()
-            sideSlot { timer }
+            sideSlot(visible: isRecording || model.micIsReady) {
+                if isRecording { timer } else { micOffButton }
+            }
         }
         .padding(.horizontal, 28)
     }
 
-    private func sideSlot<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
-        ZStack { if isRecording { content().transition(.scale.combined(with: .opacity)) } }
+    private func sideSlot<Content: View>(visible: Bool, @ViewBuilder _ content: () -> Content) -> some View {
+        ZStack { if visible { content().transition(.scale.combined(with: .opacity)) } }
             .frame(width: 56, height: 44)
+    }
+
+    private var micOffButton: some View {
+        Button(action: model.micOffTapped) {
+            Image(systemName: "mic.slash.fill")
+                .font(.jakarta(size: 14, weight: .semibold))
+                .foregroundStyle(.primary.opacity(0.7))
+                .frame(width: 40, height: 40)
+                .background(.ultraThinMaterial, in: Circle())
+                .overlay(Circle().strokeBorder(Color.primary.opacity(0.1)))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Turn the microphone off")
     }
 
     private var cancelButton: some View {
@@ -201,7 +216,10 @@ struct KeyboardView: View {
         case .error: return model.statusMessage ?? "Something went wrong"
         case .idle:
             if let message = model.statusMessage, model.sessionAlive { return message }
-            return model.sessionAlive ? "Tap the orb and start talking" : "Tap to dictate (Leap Whisper opens briefly)"
+            if model.sessionAlive { return "Mic is ready. Tap the orb and start talking" }
+            return model.micStandby.keepsMicAfterDictation
+                ? "Tap to start. Leap Whisper opens once, then the mic stays ready"
+                : "Tap to dictate (Leap Whisper opens briefly)"
         }
     }
 

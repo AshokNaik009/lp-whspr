@@ -11,6 +11,7 @@ enum DictationCommandKind: String, Codable {
     case start
     case stop
     case cancel
+    case end
 }
 
 struct DictationCommand: Codable {
@@ -45,6 +46,7 @@ enum SharedStore {
         static let livePartial = "session.livePartial"
         static let recentHistory = "history.recent"
         static let keyboardBackground = "keyboard.background"
+        static let micStandby = "session.micStandby"
     }
 
     /// The app refreshes the heartbeat from its audio tap while a background session is running.
@@ -68,6 +70,12 @@ enum SharedStore {
 
     static func clearHeartbeat() {
         defaults.removeObject(forKey: Key.heartbeat)
+    }
+
+    /// How long the app keeps the mic on after a dictation; the keyboard reads it to word its hint.
+    static var micStandby: MicStandby {
+        get { MicStandby(stored: defaults.object(forKey: Key.micStandby) as? Int) }
+        set { defaults.set(newValue.rawValue, forKey: Key.micStandby) }
     }
 
     static var state: DictationState {

@@ -154,3 +154,34 @@ final class WAVEncoderTests: XCTestCase {
         XCTAssertFalse(prompt.contains("Leap Whisper"), "built-in duplicate of a user term is dropped")
     }
 }
+
+final class MicStandbyTests: XCTestCase {
+    // AC-001-5
+    func testOffClosesTheMicRightAfterADictation() {
+        XCTAssertFalse(MicStandby.off.keepsMicAfterDictation)
+        XCTAssertTrue(MicStandby.off.hasExpired(idleSeconds: 0))
+    }
+
+    // AC-001-6
+    func testTimedStandbyExpiresOnlyAfterItsWindow() {
+        XCTAssertTrue(MicStandby.fifteenMinutes.keepsMicAfterDictation)
+        XCTAssertFalse(MicStandby.fifteenMinutes.hasExpired(idleSeconds: 14 * 60 + 59))
+        XCTAssertTrue(MicStandby.fifteenMinutes.hasExpired(idleSeconds: 15 * 60))
+        XCTAssertFalse(MicStandby.fiveMinutes.hasExpired(idleSeconds: 299))
+        XCTAssertTrue(MicStandby.fiveMinutes.hasExpired(idleSeconds: 300))
+        XCTAssertTrue(MicStandby.oneHour.hasExpired(idleSeconds: 3_600))
+    }
+
+    func testAlwaysNeverExpires() {
+        XCTAssertTrue(MicStandby.always.keepsMicAfterDictation)
+        XCTAssertFalse(MicStandby.always.hasExpired(idleSeconds: 86_400 * 7))
+    }
+
+    func testStoredValueFallsBackToTheDefault() {
+        XCTAssertEqual(MicStandby(stored: nil), .fifteenMinutes)
+        XCTAssertEqual(MicStandby(stored: 42), .fifteenMinutes)
+        XCTAssertEqual(MicStandby(stored: 0), .off)
+        XCTAssertEqual(MicStandby(stored: -1), .always)
+        XCTAssertEqual(MicStandby(stored: 60), .oneHour)
+    }
+}

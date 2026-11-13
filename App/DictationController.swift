@@ -141,11 +141,18 @@ final class DictationController: ObservableObject {
         SharedStore.clearHeartbeat()
     }
 
+    /// A dictation just ended: keep the mic ready for the standby window so the next keyboard tap records
+    /// without opening the app, or switch it off straight away when standby is off.
+    private func finishDictation() {
+        lastActivity = Date()
+        if !settings.micStandby.keepsMicAfterDictation { closeMic() }
+    }
+
     private func checkIdleTimeout() {
-        guard isSessionActive, state == .idle else { return }
-        if Date().timeIntervalSince(lastActivity) > Double(settings.sessionTimeoutMinutes * 60) {
-            endSession(reason: "Session ended after \(settings.sessionTimeoutMinutes) idle minutes.")
-        }
+        guard isSessionActive, state == .idle || state == .error else { return }
+        let idle = Date().timeIntervalSince(lastActivity)
+        // A session that was just opened gets a few seconds to start recording, even with standby off.
+        if idle > 5, settings.micStandby.hasExpired(idleSeconds: idle) { closeMic() }
     }
 
     private func preloadModel() {
@@ -164,6 +171,7 @@ final class DictationController: ObservableObject {
         case .start: startRecording(modeID: command.modeID)
         case .stop: stopRecording()
         case .cancel: cancelRecording()
+        case .end: if state != .recording && state != .transcribing { endSession() }
         }
     }
 
@@ -224,14 +232,11 @@ final class DictationController: ObservableObject {
         _ = capture.endRecording()
         level = 0
         update(state: .idle)
-        closeMic()
+        finishDictation()
     }
 
     private func process(samples: [Float], mode: DictationMode) async {
-        defer {
-            lastActivity = Date()
-            closeMic()
-        }
+        defer { finishDictation() }
         guard samples.count > Int(AudioCapture.sampleRate * 0.3) else {
             update(state: .idle, message: "Didn't catch that — hold on a bit longer.")
             return
@@ -324,9 +329,12 @@ final class DictationController: ObservableObject {
     // MARK: Calibration
 
     @Published private(set) var isCalibrating = false
+    private var calibrationStartedMic = false
 
     func beginCalibrationCapture() async -> Bool {
+        let micWasOn = capture.isRunning
         guard state == .idle || state == .error, await ensureSession() else { return false }
+        calibrationStartedMic = !micWasOn
         isCalibrating = true
         lastActivity = Date()
         capture.beginRecording()
@@ -340,7 +348,7 @@ final class DictationController: ObservableObject {
         level = 0
         let samples = capture.endRecording()
         update(state: .idle)
-        closeMic()
+        if calibrationStartedMic { closeMic() }
         return samples
     }
 

@@ -25,6 +25,7 @@ struct LeapWhisperApp: App {
                 .onOpenURL { controller.handle(url: $0) }
                 .onChange(of: scenePhase) { _, phase in
                     if phase == .active { controller.handlePendingStart() }
+                    if phase == .background { controller.openedFromKeyboard = false }
                 }
         }
     }

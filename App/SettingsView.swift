@@ -106,6 +106,16 @@ struct SettingsView: View {
                     Text("The key is stored in this device's Keychain and only sent to api.groq.com.")
                 }
 
+                Section {
+                    Picker("Keep mic ready", selection: $settings.micStandby) {
+                        ForEach(MicStandby.allCases) { Text($0.title).tag($0) }
+                    }
+                } header: {
+                    Text("Keyboard dictation")
+                } footer: {
+                    Text("iOS only lets Leap Whisper start the microphone while the app is on screen. While the mic stays ready, the keyboard records instantly without leaving the app you're typing in, and iOS shows the orange mic dot. Off switches the mic off after every dictation, so each one opens Leap Whisper first. You can also turn the mic off any time from the keyboard.")
+                }
+
                 KeyboardBackgroundSection()
             }
             .themedBackground()

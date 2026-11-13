@@ -119,7 +119,7 @@ struct OnboardingView: View {
                 "Long-press 🌐 at the bottom left and pick Leap Whisper.",
                 "Tap the mic, speak, tap again. The text appears here.",
             ])
-            Text("In other apps, the first tap opens Leap Whisper to start the mic. Swipe back (◀ top left) and keep dictating; it stays ready for 10 minutes.")
+            Text("In other apps, the first tap opens Leap Whisper to start the mic. Swipe right along the bottom edge to go back and keep dictating; the mic then stays ready \(settings.micStandby.phrase).")
                 .foregroundStyle(.tertiary)
             TextField("Practice here…", text: $practiceText, axis: .vertical)
                 .lineLimit(3...6)

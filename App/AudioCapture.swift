@@ -28,7 +28,8 @@ final class AudioCapture {
     func startEngine() throws {
         guard !engine.isRunning else { return }
         let session = AVAudioSession.sharedInstance()
-        try session.setCategory(.playAndRecord, mode: .measurement, options: [.mixWithOthers, .defaultToSpeaker, .allowBluetooth])
+        // No Bluetooth hands-free route: it would drop AirPods to call quality for as long as the mic stays ready.
+        try session.setCategory(.playAndRecord, mode: .measurement, options: [.mixWithOthers, .defaultToSpeaker, .allowBluetoothA2DP])
         try session.setActive(true)
 
         let input = engine.inputNode

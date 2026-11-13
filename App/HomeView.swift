@@ -120,10 +120,12 @@ struct HomeView: View {
                 Text(isRecording ? "Recording — go back to your app" : "Mic is ready — go back to your app")
                     .font(.jakarta(.headline))
             }
-            Text("Tap ◀ in the top-left corner. Keep talking; your words appear where you were typing. Tap ■ in the Leap Whisper keyboard to finish.")
+            Text("Swipe right along the bottom edge of the screen (or tap ◀ at the top-left if it shows). Keep talking; your words appear where you were typing. Tap ■ in the Leap Whisper keyboard to finish.")
                 .font(.jakarta(.subheadline))
                 .foregroundStyle(Color.primary.opacity(0.9))
-            Text("The mic switches off as soon as your text is in, so the orange dot goes away.")
+            Text(settings.micStandby.keepsMicAfterDictation
+                 ? "The mic stays ready \(settings.micStandby.phrase), so your next taps on the keyboard record right there without opening this app."
+                 : "The mic switches off as soon as your text is in, so the orange dot goes away.")
                 .font(.jakarta(.footnote))
                 .foregroundStyle(Color.primary.opacity(0.75))
         }
@@ -173,7 +175,7 @@ struct HomeView: View {
                     .transition(.opacity)
             }
             if controller.isSessionActive && controller.state == .idle {
-                Button("End session") { controller.endSession() }
+                Button("Turn mic off") { controller.endSession() }
                     .font(.jakarta(.footnote, .semibold))
                     .padding(.horizontal, 14)
                     .padding(.vertical, 7)
@@ -224,10 +226,16 @@ struct HomeView: View {
                 .font(.jakarta(.footnote))
                 .foregroundStyle(controller.state == .error ? (flat ? FlatPalette.danger : Color(red: 1, green: 0.85, blue: 0.85)) : Color.primary.opacity(0.8))
         } else {
-            Text(controller.isSessionActive ? "Tap the mic and start talking" : "The mic turns off after each dictation")
+            Text(idleDetail)
                 .font(.jakarta(.footnote))
                 .foregroundStyle(Color.primary.opacity(0.8))
         }
+    }
+
+    private var idleDetail: String {
+        if controller.isSessionActive { return "Tap the mic and start talking" }
+        let standby = settings.micStandby
+        return standby.keepsMicAfterDictation ? "The mic stays ready \(standby.phrase)" : "The mic turns off after each dictation"
     }
 
     private var statusTitle: String {

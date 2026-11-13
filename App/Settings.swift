@@ -37,7 +37,8 @@ final class AppSettings: ObservableObject {
     @Published var vocabulary: String { didSet { save(vocabulary, "vocabulary") } }
     @Published var groqTranscriptionModel: String { didSet { save(groqTranscriptionModel, "groqTranscriptionModel") } }
     @Published var groqChatModel: String { didSet { save(groqChatModel, "groqChatModel") } }
-    @Published var sessionTimeoutMinutes: Int { didSet { save(sessionTimeoutMinutes, "sessionTimeoutMinutes") } }
+    /// Keeps the mic on after a dictation so the next keyboard tap records without opening the app.
+    @Published var micStandby: MicStandby { didSet { SharedStore.micStandby = micStandby } }
     /// Re-transcribe with Groq when the on-device result is missing or below `fallbackConfidenceThreshold`.
     @Published var cloudFallbackEnabled: Bool { didSet { save(cloudFallbackEnabled, "cloudFallbackEnabled") } }
     /// Show words while speaking (fast on-device passes); the final text still comes from a full pass on stop.
@@ -54,8 +55,7 @@ final class AppSettings: ObservableObject {
         vocabulary = d.string(forKey: "vocabulary") ?? ""
         groqTranscriptionModel = d.string(forKey: "groqTranscriptionModel") ?? "whisper-large-v3-turbo"
         groqChatModel = d.string(forKey: "groqChatModel") ?? "openai/gpt-oss-20b"
-        let timeout = d.integer(forKey: "sessionTimeoutMinutes")
-        sessionTimeoutMinutes = timeout > 0 ? timeout : 30
+        micStandby = SharedStore.micStandby
         cloudFallbackEnabled = d.object(forKey: "cloudFallbackEnabled") as? Bool ?? true
         liveTranscription = d.object(forKey: "liveTranscription") as? Bool ?? true
         let threshold = d.double(forKey: "fallbackConfidenceThreshold")
